@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply font-body bg-ink-950 text-ink-100 antialiased min-h-screen;
+    background-image:
+      radial-gradient(50% 40% at 50% -10%, rgba(99, 85, 255, 0.22), transparent 70%),
+      linear-gradient(180deg, #090a0f 0%, #0e1018 100%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-brand-500/40 text-white;
+  }
+  input, textarea, select {
+    @apply bg-ink-900 border border-ink-700 text-ink-100 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500/60 focus:border-brand-500 transition;
+  }
+  a {
+    @apply text-ink-100 transition-colors;
+  }
+  h1, h2, h3, h4, h5 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ink-950 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn bg-ink-800/70 text-ink-100 hover:bg-ink-700 border border-ink-700;
+  }
+  .btn-outline {
+    @apply btn border border-brand-500/60 text-brand-300 hover:bg-brand-500/10;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-500;
+  }
+  .card {
+    @apply rounded-xl2 border border-ink-800 bg-ink-900/60 backdrop-blur-sm shadow-card;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-ink-700 bg-ink-800/60 px-3 py-1 text-xs text-ink-200;
+  }
+  .input-label {
+    @apply block text-xs uppercase tracking-wider text-ink-400 mb-1;
+  }
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .link-underline {
+    @apply relative after:absolute after:left-0 after:bottom-0 after:h-[1.5px] after:w-0 after:bg-brand-400 after:transition-all hover:after:w-full;
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-300 via-white to-accent bg-clip-text text-transparent;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
