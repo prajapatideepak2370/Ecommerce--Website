@@ -13,6 +13,11 @@ export const productApi = {
   bySlug: (slug) => api.get(`/products/${slug}`).then(unwrap),
 };
 
+export const reviewApi = {
+  list: (productId) =>
+    api.get(`/products/${productId}/reviews`).then(unwrap),
+};
+
 export const categoryApi = {
   list: () => api.get("/categories").then(unwrap),
 };

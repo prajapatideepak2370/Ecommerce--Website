@@ -1,21 +1,50 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Box, Layers } from "lucide-react";
+import { ArrowRight, Sparkles, Box, Layers, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { productApi } from "../api/endpoints.js";
+import { demoProducts } from "../data/demoProducts.js";
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
 
   useEffect(() => {
     let mounted = true;
-    productApi.list({ featured: true, limit: 4 })
-      .then((data) => {
-        if (mounted) setFeaturedProducts(data.items || []);
-      })
-      .catch(() => {
-        if (mounted) setFeaturedProducts([]);
-      });
+    const loadFeaturedProducts = async () => {
+      let products = [];
+      try {
+        const featured = await productApi.list({ featured: true, limit: 4 });
+        products = featured.items || [];
+      } catch (error) {
+        console.error("Failed to load featured products:", error);
+      }
+
+      if (products.length < 3) {
+        try {
+          const catalog = await productApi.list({ limit: 4 });
+          const knownIds = new Set(products.map((product) => product._id));
+          products = [
+            ...products,
+            ...(catalog.items || []).filter(
+              (product) => !knownIds.has(product._id),
+            ),
+          ].slice(0, 4);
+        } catch (error) {
+          console.error("Failed to load catalog products:", error);
+        }
+      }
+
+      if (products.length < 3) {
+        const knownIds = new Set(products.map((product) => product._id));
+        products = [
+          ...products,
+          ...demoProducts.filter((product) => !knownIds.has(product._id)),
+        ].slice(0, 4);
+      }
+
+      if (mounted) setFeaturedProducts(products);
+    };
+    loadFeaturedProducts();
 
     return () => {
       mounted = false;
@@ -181,6 +210,32 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="page-container pt-8">
+        <div className="card relative overflow-hidden p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+          <div
+            className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl"
+            aria-hidden="true"
+          />
+          <div className="relative">
+            <h2 className="font-display text-xl md:text-2xl font-semibold">
+              Make it <span className="gradient-text">yours</span>
+            </h2>
+            <p className="mt-2 text-sm md:text-base text-ink-300">
+              Want a product customized just for you? Call us and let us know
+              what you have in mind.
+            </p>
+          </div>
+          <a
+            href="tel:+919599662490"
+            className="btn-primary relative shrink-0"
+            aria-label="Call us at +91 9599662490 to customize a product"
+          >
+            <Phone size={16} />
+            Call +919599662490
+          </a>
+        </div>
+      </section>
+
       {/* FEATURED PRODUCTS */}
       <section className="page-container py-16">
         <div className="flex items-end justify-between mb-8">
@@ -192,40 +247,33 @@ export default function Home() {
               Hand-picked by Jasvinder, Shruti, and Vishal.
             </p>
           </div>
-          <Link
-            to="/shop"
-            className="text-sm link-underline text-brand-300 hidden sm:inline-flex items-center gap-1"
-          >
-            View all <ArrowRight size={14} />
-          </Link>
         </div>
 
-        {featuredProducts.length ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {featuredProducts.map((product) => {
-              const image = product.images?.[0]?.url;
-              const price = product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price;
-              return (
-                <Link key={product._id} to={`/product/${product.slug}`} className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow">
-                  <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
-                    {image ? <img src={image} alt={product.name} className="w-full h-full object-cover" /> : <Box size={36} className="text-brand-300" />}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {featuredProducts.map((product) => {
+            const image = product.images?.[0]?.url;
+            const price = product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price;
+            return (
+              <Link key={product._id} to={product.isDemo ? "/shop" : `/product/${product.slug}`} className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow">
+                <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
+                  {image ? <img src={image} alt={product.name} className="w-full h-full object-cover" /> : <Box size={36} className="text-brand-300" />}
+                </div>
+                <div className="mt-3 px-1">
+                  <div className="font-medium line-clamp-2 min-h-12">{product.name}</div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="font-semibold">₹{price.toLocaleString("en-IN")}</span>
+                    <ArrowRight size={16} className="text-ink-400" />
                   </div>
-                  <div className="mt-3 px-1">
-                    <div className="font-medium line-clamp-2 min-h-12">{product.name}</div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="font-semibold">₹{price.toLocaleString("en-IN")}</span>
-                      <ArrowRight size={16} className="text-ink-400" />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="border-y border-ink-800 py-8 text-sm text-ink-400">
-            No featured products yet. <Link to="/shop" className="text-brand-300 link-underline">Browse the shop</Link>
-          </div>
-        )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+        <div className="mt-8 text-center">
+          <Link to="/shop" className="btn-outline">
+            Show more products <ArrowRight size={16} />
+          </Link>
+        </div>
       </section>
 
       {/* BUILT BY THREE */}

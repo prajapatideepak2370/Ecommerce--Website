@@ -14,7 +14,7 @@ const categorySchema = new Schema({
 }, { timestamps: true });
 
 categorySchema.pre("validate", function () {
-  if (this.isModified("name") || this.isNew) {
+  if (!this.slug || (this.isModified("name") && !this.isModified("slug"))) {
     this.slug = slugify(this.name, { lower: true, strict: true, remove: /[*+~.()'"!:@]/g });
   }
 });

@@ -80,7 +80,7 @@ module.exports.updateProfile = async (req, res, next) => {
   const updated = await User.findByIdAndUpdate(
     req.user._id,
     { $set: allowed },
-    { new: true, runValidators: true, select: "-hash -salt" },
+    { returnDocument: "after", runValidators: true, select: "-hash -salt" },
   ).lean();
   sendSuccess(res, updated);
 };

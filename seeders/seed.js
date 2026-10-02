@@ -507,6 +507,15 @@ async function seedProducts(categories) {
   console.log(`Seeded ${items.length} products`);
 }
 
+module.exports = {
+  connectDB,
+  seedAdmin,
+  seedCategories,
+  seedProducts,
+  buildProducts,
+  CATEGORY_SEEDS,
+};
+
 async function main() {
   try {
     await connectDB();
@@ -523,4 +532,6 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}

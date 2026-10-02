@@ -9,18 +9,20 @@ import {
   Package,
   LogOut,
   Settings as SettingsIcon,
-  LayoutDashboard,
+  Monitor,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
   selectIsAuthenticated,
-  selectIsAdmin,
   selectUser,
   logout,
 } from "../store/authSlice.js";
 import { selectCartCount } from "../store/cartSlice.js";
 import { cn } from "../utils/cn.js";
+import { getThemeMode, setThemeMode } from "../utils/theme.js";
 
 const navLinks = [
   { to: "/shop", label: "Shop" },
@@ -34,11 +36,11 @@ export default function Navbar() {
   const dispatch = useDispatch();
   const cartCount = useSelector(selectCartCount);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  const isAdmin = useSelector(selectIsAdmin);
   const user = useSelector(selectUser);
 
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [themeMode, setThemeModeState] = useState(getThemeMode);
 
   const closeMenus = () => {
     setOpen(false);
@@ -62,6 +64,15 @@ export default function Navbar() {
       toast.error(err?.message || "Logout failed");
     }
   };
+
+  const cycleTheme = () => {
+    const modes = ["system", "light", "dark"];
+    const nextMode = modes[(modes.indexOf(themeMode) + 1) % modes.length];
+    setThemeMode(nextMode);
+    setThemeModeState(nextMode);
+  };
+  const ThemeIcon =
+    themeMode === "system" ? Monitor : themeMode === "light" ? Sun : Moon;
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink-800/70 bg-ink-950/70 backdrop-blur-md">
@@ -109,6 +120,15 @@ export default function Navbar() {
           onClick={() => navigate("/shop")}
         >
           <Search size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label={`Theme: ${themeMode}`}
+          title={`Theme: ${themeMode}`}
+          onClick={cycleTheme}
+          className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-brand-300 hover:bg-ink-800/50"
+        >
+          <ThemeIcon size={18} />
         </button>
 
         <Link
@@ -161,15 +181,6 @@ export default function Navbar() {
                   >
                     <Package size={16} /> My Orders
                   </Link>
-                  {isAdmin && (
-                    <Link
-                      onClick={closeMenus}
-                      to="/admin"
-                      className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-ink-800/70 text-sm"
-                    >
-                      <LayoutDashboard size={16} /> Admin Dashboard
-                    </Link>
-                  )}
                   <div className="h-px bg-ink-800 my-1" />
                   <button
                     onClick={handleLogout}
@@ -246,15 +257,6 @@ export default function Navbar() {
                 >
                   My Orders
                 </Link>
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    onClick={closeMenus}
-                    className="px-3 py-2 rounded-md text-sm"
-                  >
-                    Admin
-                  </Link>
-                )}
                 <button
                   onClick={handleLogout}
                   className="text-left px-3 py-2 rounded-md text-sm text-rose-300"

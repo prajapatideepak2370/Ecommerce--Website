@@ -24,6 +24,16 @@ const ordersRouter = require("./routes/orders");
 const reviewsRouter = require("./routes/reviews");
 const adminRouter = require("./routes/admin");
 
+const adminAuthRouter = require("./routes/admin/adminAuth");
+const adminProductsRouter = require("./routes/admin/adminProducts");
+const adminCategoriesRouter = require("./routes/admin/adminCategories");
+const adminCatalogRouter = require("./routes/admin/adminCatalog");
+const { adminPassport, GENERIC_INVALID } = require("./utils/adminPassport");
+const {
+  requireAdminAuth,
+  requireAdminAuthOr404ForUnknown,
+} = require("./middleware/adminAuth");
+
 function buildApp(dbClientPromise) {
   const app = express();
 
@@ -57,10 +67,15 @@ function buildApp(dbClientPromise) {
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
+  const adminOrigins = (process.env.ADMIN_ORIGIN || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const allCorsOrigins = Array.from(new Set([...corsOrigins, ...adminOrigins]));
 
   app.use(
     cors({
-      origin: corsOrigins,
+      origin: allCorsOrigins,
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Accept", "X-Requested-With"],
@@ -106,29 +121,29 @@ function buildApp(dbClientPromise) {
   });
 
   const isProd = process.env.NODE_ENV === "production";
-  app.use(
-    session({
-      store: sessionStore,
-      secret: process.env.SECRET_KEY || "dev-secret-change-me-please",
-      resave: false,
-      saveUninitialized: false,
-      name: "tryvoxel.sid",
-      cookie: {
-        httpOnly: true,
-        sameSite: isProd ? "none" : "lax",
-        secure: isProd,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      },
-    }),
-  );
+  const customerSessionMiddleware = session({
+    store: sessionStore,
+    secret: process.env.SECRET_KEY || "dev-secret-change-me-please",
+    resave: false,
+    saveUninitialized: false,
+    name: "tryvoxel.sid",
+    cookie: {
+      httpOnly: true,
+      sameSite: isProd ? "none" : "lax",
+      secure: isProd,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  });
 
-  app.use(passport.initialize());
-  app.use(passport.session());
   passport.use(
     new LocalStrategy({ usernameField: "username" }, User.authenticate()),
   );
   passport.serializeUser(User.serializeUser());
   passport.deserializeUser(User.deserializeUser());
+
+  app.use("/api/v1", customerSessionMiddleware);
+  app.use("/api/v1", passport.initialize());
+  app.use("/api/v1", passport.session());
 
   app.get("/api/v1/health", (req, res) => {
     res.status(200).json({
@@ -151,14 +166,96 @@ function buildApp(dbClientPromise) {
   app.use("/api/v1/orders", ordersRouter);
   app.use("/api/v1/admin", adminRouter);
 
+  const adminSessionStore = MongoStore.create({
+    clientPromise: dbClientPromise,
+    collectionName: "adminSessions",
+    crypto: {
+      secret:
+        process.env.ADMIN_SESSION_SECRET ||
+        process.env.SECRET_KEY ||
+        "admin-dev-secret-change-me-please",
+    },
+    touchAfter: 3600,
+  });
+
+  const ADMIN_COOKIE_MAX_AGE = Math.max(
+    60_000,
+    Number(process.env.ADMIN_SESSION_MAX_AGE || 2 * 60 * 60) * 1000,
+  );
+
+  const adminSessionMiddleware = session({
+    store: adminSessionStore,
+    secret:
+      process.env.ADMIN_SESSION_SECRET ||
+      process.env.SECRET_KEY ||
+      "admin-dev-secret-change-me-please",
+    resave: false,
+    saveUninitialized: false,
+    name: "tryvoxel.admin.sid",
+    cookie: {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: isProd,
+      maxAge: ADMIN_COOKIE_MAX_AGE,
+    },
+  });
+
+  const adminGeneralLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 500,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use("/api/admin", (req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+    next();
+  });
+  app.use("/api/admin", adminGeneralLimiter);
+  app.use("/api/admin", adminSessionMiddleware);
+  app.use("/api/admin", adminPassport.initialize());
+  app.use("/api/admin", adminPassport.session());
+  app.use("/api/admin/auth", adminAuthRouter);
+  app.use("/api/admin", requireAdminAuth);
+  app.use("/api/admin/products", adminProductsRouter);
+  app.use("/api/admin/categories", adminCategoriesRouter);
+  app.use("/api/admin/catalog", adminCatalogRouter);
+  app.use("/api/admin", requireAdminAuthOr404ForUnknown);
+
   const clientDist = path.join(__dirname, "client", "dist");
   const hasClientBuild =
     fs.existsSync(clientDist) &&
     fs.existsSync(path.join(clientDist, "index.html"));
+  const hasAdminBuild =
+    fs.existsSync(clientDist) &&
+    fs.existsSync(path.join(clientDist, "admin.html"));
+  const ADMIN_BASE_RAW = process.env.VITE_ADMIN_BASE || "/tvx-console";
+  const ADMIN_BASE = ADMIN_BASE_RAW.endsWith("/")
+    ? ADMIN_BASE_RAW.slice(0, -1)
+    : ADMIN_BASE_RAW;
+  const ADMIN_BASE_REGEX = new RegExp(
+    `^${ADMIN_BASE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\/.*)?$`,
+  );
 
   if (hasClientBuild) {
+    if (hasAdminBuild) {
+      app.get("/admin.html", (_req, res) => {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+        res.sendStatus(404);
+      });
+    }
     app.use(express.static(clientDist));
+    if (hasAdminBuild) {
+      app.get(ADMIN_BASE_REGEX, (_req, res) => {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+        res.sendFile(path.join(clientDist, "admin.html"));
+      });
+    }
     app.get(/^(?!\/api).*/, (req, res) => {
+      if (hasAdminBuild && ADMIN_BASE_REGEX.test(req.path)) {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+        return res.sendFile(path.join(clientDist, "admin.html"));
+      }
       res.sendFile(path.join(clientDist, "index.html"));
     });
   }

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Instagram, Twitter, Youtube, Github } from "lucide-react";
+import { Instagram, Twitter, Youtube } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -22,12 +22,11 @@ export default function Footer() {
             </div>
           </div>
           <p className="text-ink-300 max-w-md text-sm leading-relaxed">
-            A premium, experimental 3D-first e-commerce platform. Curated by
-            three creators — Jasvinder, Shruti, Vishal — for the products you'll
-            want to live inside.
+            A premium, experimental 3D-first e-commerce platform, built for the
+            products you'll want to live inside.
           </p>
           <div className="flex items-center gap-2 mt-4">
-            {[Instagram, Twitter, Youtube, Github].map((Icon, i) => (
+            {[Instagram, Twitter, Youtube].map((Icon, i) => (
               <a
                 key={i}
                 href="#"
@@ -94,10 +93,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-ink-800/80">
         <div className="page-container py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-ink-400">
-          <div>
-            © {new Date().getFullYear()} TRYVOXEL³ᴰ — Built by Jasvinder ×
-            Shruti × Vishal
-          </div>
+          <div>© {new Date().getFullYear()} TRYVOXEL³ᴰ</div>
           <div className="flex items-center gap-4">
             <span>All rights reserved</span>
           </div>

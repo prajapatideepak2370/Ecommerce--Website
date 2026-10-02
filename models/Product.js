@@ -33,6 +33,7 @@ const productSchema = new Schema({
   numReviews: { type: Number, default: 0, min: 0 },
   featured: { type: Boolean, default: false, index: true },
   isActive: { type: Boolean, default: true, index: true },
+  deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true });
 
 productSchema.index(
@@ -41,7 +42,7 @@ productSchema.index(
 );
 
 productSchema.pre("validate", function () {
-  if (this.isModified("name") || this.isNew) {
+  if (!this.slug || (this.isModified("name") && !this.isModified("slug"))) {
     this.slug = slugify(this.name, { lower: true, strict: true, remove: /[*+~.()'"!:@]/g });
   }
   if (!this.sku) {
