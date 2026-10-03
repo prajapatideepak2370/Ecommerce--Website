@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { Search, Filter, SlidersHorizontal, Box, ShoppingBag } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Search, Filter, SlidersHorizontal, Box, ShoppingBag, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
@@ -9,6 +9,8 @@ import { filterDemoProducts } from "../data/demoProducts.js";
 
 export default function Shop() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("");
   const [minPrice, setMinPrice] = useState("");
@@ -52,6 +54,12 @@ export default function Shop() {
     } catch (err) {
       toast.error(err?.message || "Could not add to cart");
     }
+  };
+
+  const openJellyLab = (product) => {
+    navigate(`/jelly-lab/${product.slug}`, {
+      state: { product, returnTo: `${location.pathname}${location.search}` },
+    });
   };
 
   useEffect(() => {
@@ -322,6 +330,13 @@ export default function Shop() {
                       className="btn-primary w-full mt-3 !py-2 text-sm"
                     >
                       <ShoppingBag size={14} /> Add to cart
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openJellyLab(product)}
+                      className="btn-ghost w-full mt-2 !py-2 text-sm"
+                    >
+                      <Sparkles size={14} /> Try Jelly Lab
                     </button>
                   </div>
                 );

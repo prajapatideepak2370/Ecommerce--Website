@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 
 import MainLayout from "../layouts/MainLayout.jsx";
@@ -21,8 +22,24 @@ import OrderConfirmation from "../pages/OrderConfirmation.jsx";
 import Profile from "../pages/account/Profile.jsx";
 import Addresses from "../pages/account/Addresses.jsx";
 import MyOrders from "../pages/account/MyOrders.jsx";
+import OrderDetail from "../pages/account/OrderDetail.jsx";
 import Settings from "../pages/account/Settings.jsx";
 
+const JellyLab = lazy(() => import("../pages/JellyLab.jsx"));
+
+function JellyLabRoute() {
+  return (
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-[#e8e5df] text-stone-700">
+          Loading Jelly Lab…
+        </main>
+      }
+    >
+      <JellyLab />
+    </Suspense>
+  );
+}
 
 function PublicOutlet() {
   return (
@@ -43,6 +60,7 @@ function AccountOutlet() {
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/jelly-lab/:slug" element={<JellyLabRoute />} />
       <Route element={<PublicOutlet />}>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -82,6 +100,7 @@ export default function AppRoutes() {
         <Route index element={<Profile />} />
         <Route path="addresses" element={<Addresses />} />
         <Route path="orders" element={<MyOrders />} />
+        <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

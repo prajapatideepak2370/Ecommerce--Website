@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
   ShoppingBag,
@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Truck,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
@@ -28,6 +29,7 @@ const getReviewName = (review) =>
 
 export default function ProductDetails() {
   const { slug } = useParams();
+  const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
@@ -394,6 +396,21 @@ export default function ProductDetails() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/jelly-lab/${product.slug}`, {
+                  state: {
+                    product,
+                    returnTo: `${location.pathname}${location.search}`,
+                  },
+                })
+              }
+              className="btn-ghost !px-6 !py-3"
+            >
+              <Sparkles size={17} />
+              Try in Jelly Lab
+            </button>
             <button
               type="button"
               onClick={() => addProductToCart(false)}

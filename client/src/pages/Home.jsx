@@ -254,18 +254,27 @@ export default function Home() {
             const image = product.images?.[0]?.url;
             const price = product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price;
             return (
-              <Link key={product._id} to={product.isDemo ? "/shop" : `/product/${product.slug}`} className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow">
-                <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
-                  {image ? <img src={image} alt={product.name} className="w-full h-full object-cover" /> : <Box size={36} className="text-brand-300" />}
-                </div>
-                <div className="mt-3 px-1">
-                  <div className="font-medium line-clamp-2 min-h-12">{product.name}</div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="font-semibold">₹{price.toLocaleString("en-IN")}</span>
-                    <ArrowRight size={16} className="text-ink-400" />
+              <div key={product._id} className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow">
+                <Link to={`/product/${product.slug}`} className="block">
+                  <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
+                    {image ? <img src={image} alt={product.name} className="w-full h-full object-cover" /> : <Box size={36} className="text-brand-300" />}
                   </div>
-                </div>
-              </Link>
+                  <div className="mt-3 px-1">
+                    <div className="font-medium line-clamp-2 min-h-12">{product.name}</div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="font-semibold">₹{price.toLocaleString("en-IN")}</span>
+                      <ArrowRight size={16} className="text-ink-400" />
+                    </div>
+                  </div>
+                </Link>
+                <Link
+                  to={`/jelly-lab/${product.slug}`}
+                  state={{ product, returnTo: "/" }}
+                  className="btn-ghost mt-3 w-full !py-2 text-sm"
+                >
+                  <Sparkles size={14} /> Try Jelly Lab
+                </Link>
+              </div>
             );
           })}
         </div>

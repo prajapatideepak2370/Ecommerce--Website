@@ -92,3 +92,14 @@ export const adminInventoryApi = {
   history: (id, params) =>
     adminApi.get(`/catalog/inventory/${id}/history`, { params }).then(unwrap),
 };
+
+export const adminOrdersApi = {
+  list: (params) => adminApi.get("/orders", { params }).then(unwrap),
+  getById: (id) => adminApi.get(`/orders/${id}`).then(unwrap),
+  updateStatus: (id, payload) =>
+    adminApi.put(`/orders/${id}/status`, payload).then(unwrap),
+  updatePayment: (id, payload) =>
+    adminApi.put(`/orders/${id}/payment`, payload).then(unwrap),
+  refund: (id, payload) =>
+    adminApi.put(`/orders/${id}/refund`, payload || {}).then(unwrap),
+};

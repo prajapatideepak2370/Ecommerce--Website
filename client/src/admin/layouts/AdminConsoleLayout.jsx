@@ -5,6 +5,7 @@ import {
   Package,
   FolderKanban,
   Warehouse,
+  ShoppingCart,
   LogOut,
   Menu,
   X,
@@ -16,6 +17,7 @@ import { cn } from "../../utils/cn.js";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/orders", label: "Orders", icon: ShoppingCart },
   { to: "/products", label: "Products", icon: Package },
   { to: "/inventory", label: "Inventory", icon: Warehouse },
   { to: "/categories", label: "Categories", icon: FolderKanban },

@@ -152,7 +152,7 @@ module.exports.cartSchemas = {
 
 module.exports.orderSchemas = {
   create: Joi.object({
-    addressId: Joi.string().required(),
+    addressId: Joi.string(),
     shippingAddress: Joi.object({
       label: Joi.string(),
       fullName: Joi.string().required(),
@@ -164,7 +164,28 @@ module.exports.orderSchemas = {
       postalCode: Joi.string().required(),
       country: Joi.string().required(),
     }),
-  }),
+    paymentMethod: Joi.string().valid("COD", "UPI").default("COD"),
+    paymentReference: Joi.string().allow("", null).default(""),
+    paymentStatus: Joi.string()
+      .valid("Pending", "Paid", "Failed", "Refunded")
+      .default("Pending"),
+    items: Joi.array().items(
+      Joi.object({
+        product: Joi.string().required(),
+        name: Joi.string().required(),
+        image: Joi.string().allow("", null).default(""),
+        quantity: Joi.number().integer().min(1).required(),
+        unitPrice: Joi.number().min(0).required(),
+        productMeta: Joi.object({
+          slug: Joi.string().allow("", null),
+        }).unknown(true),
+      }),
+    ),
+  })
+    .xor("addressId", "shippingAddress")
+    .messages({
+      "object.missing": "Provide either addressId or shippingAddress.",
+    }),
 
   status: Joi.object({
     orderStatus: Joi.string()
@@ -274,10 +295,7 @@ module.exports.adminCatalogSchemas = {
   }),
 
   productBulk: Joi.object({
-    ids: Joi.array()
-      .items(Joi.string().min(1))
-      .min(1)
-      .required(),
+    ids: Joi.array().items(Joi.string().min(1)).min(1).required(),
     action: Joi.string()
       .valid("activate", "deactivate", "softDelete", "stockAdd")
       .required(),

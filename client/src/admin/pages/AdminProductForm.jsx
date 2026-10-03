@@ -752,7 +752,7 @@ export default function AdminProductForm({ mode }) {
 
         <Section
           title="3D Model"
-          subtitle="Optional glTF / GLB file for 3D preview."
+          subtitle="A GLB enables Jelly Lab's real product geometry."
           icon={Box}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -776,7 +776,8 @@ export default function AdminProductForm({ mode }) {
                 )}
               </div>
               <p className="text-xs text-ink-500 mt-2">
-                GLB or glTF, max 100 MB.
+                Self-contained, uncompressed GLB recommended for Jelly Lab.
+                Maximum 100 MB.
               </p>
             </div>
             <div>

@@ -4,8 +4,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { CreditCard, QrCode, Truck } from "lucide-react";
 import toast from "react-hot-toast";
 import { clearCart, selectCartItems } from "../store/cartSlice.js";
+import { orderApi } from "../api/endpoints.js";
+import { getErrorMessage } from "../api/client.js";
 
-const ORDERS_STORAGE_KEY = "tryvoxel-demo-orders";
 const EMPTY_ADDRESS = {
   fullName: "",
   phone: "",
@@ -101,45 +102,37 @@ export default function Checkout() {
       return;
     }
 
-    const orderId = `TVX-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    const order = {
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      items: items.map((item) => ({
-        name: item.productMeta?.name || "Product",
-        quantity: item.quantity || 1,
-        price: Number(
-          item.unitPrice ||
-            item.productMeta?.discountPrice ||
-            item.productMeta?.price ||
-            0,
-        ),
-      })),
-      shippingAddress: address,
-      subtotal,
-      tax,
-      shippingFee,
-      totalAmount,
-      payment: {
-        provider: paymentMethod,
-        status: paymentMethod === "UPI" ? "Paid" : "Pending",
-        reference: paymentMethod === "UPI" ? paymentReference : "",
-      },
-      orderStatus: "Confirmed",
-    };
-
     try {
-      const savedOrders = JSON.parse(
-        localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-      );
-      localStorage.setItem(
-        ORDERS_STORAGE_KEY,
-        JSON.stringify([order, ...savedOrders]),
-      );
-      await dispatch(clearCart()).unwrap();
-      navigate(`/order/confirmation/${orderId}`, { state: { order } });
-    } catch {
-      setError("Could not save your order in this browser. Please try again.");
+      const payload = {
+        shippingAddress: address,
+        paymentMethod,
+        paymentReference: paymentMethod === "UPI" ? paymentReference : "",
+        paymentStatus: paymentMethod === "UPI" ? "Paid" : "Pending",
+        items: items.map((item) => ({
+          product: item.product || item._id,
+          name: item.productMeta?.name || item.name || "Product",
+          image: item.productMeta?.images?.[0]?.url || item.image || "",
+          quantity: Number(item.quantity || 1),
+          unitPrice: Number(
+            item.unitPrice ||
+              item.productMeta?.discountPrice ||
+              item.productMeta?.price ||
+              0,
+          ),
+          productMeta: item.productMeta || {},
+        })),
+      };
+
+      const created = await orderApi.create(payload);
+      const orderId = created?._id || created?.orderNumber;
+      try {
+        await dispatch(clearCart()).unwrap();
+      } catch (_clearErr) {
+        // ignore cart clear errors after successful order
+      }
+      navigate(`/order/confirmation/${orderId}`, { state: { order: created } });
+    } catch (e) {
+      setError(getErrorMessage(e, "Could not place your order. Please try again."));
     }
   };
 
@@ -343,8 +336,8 @@ export default function Checkout() {
             </p>
           )}
           <p className="text-xs text-ink-500 mb-4 flex gap-2">
-            <CreditCard size={14} className="shrink-0" /> Demo checkout stores
-            this test order in this browser only.
+            <CreditCard size={14} className="shrink-0" /> By confirming, your
+            order will be saved to your account and visible in My Orders.
           </p>
           <button type="submit" className="btn-primary w-full !py-3">
             {paymentMethod === "COD"

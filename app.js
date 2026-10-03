@@ -28,6 +28,7 @@ const adminAuthRouter = require("./routes/admin/adminAuth");
 const adminProductsRouter = require("./routes/admin/adminProducts");
 const adminCategoriesRouter = require("./routes/admin/adminCategories");
 const adminCatalogRouter = require("./routes/admin/adminCatalog");
+const adminOrdersRouter = require("./routes/admin/adminOrders");
 const { adminPassport, GENERIC_INVALID } = require("./utils/adminPassport");
 const {
   requireAdminAuth,
@@ -220,6 +221,7 @@ function buildApp(dbClientPromise) {
   app.use("/api/admin/products", adminProductsRouter);
   app.use("/api/admin/categories", adminCategoriesRouter);
   app.use("/api/admin/catalog", adminCatalogRouter);
+  app.use("/api/admin/orders", adminOrdersRouter);
   app.use("/api/admin", requireAdminAuthOr404ForUnknown);
 
   const clientDist = path.join(__dirname, "client", "dist");

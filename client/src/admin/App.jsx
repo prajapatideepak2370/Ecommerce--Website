@@ -10,6 +10,7 @@ import AdminProductsList from "./pages/AdminProductsList.jsx";
 import AdminProductForm from "./pages/AdminProductForm.jsx";
 import AdminInventory from "./pages/AdminInventory.jsx";
 import AdminCategoriesManager from "./pages/AdminCategoriesManager.jsx";
+import AdminOrders from "./pages/AdminOrders.jsx";
 import { setupAdminInterceptors } from "./api/client.js";
 
 function AnimatedOutlet({ children }) {
@@ -84,6 +85,22 @@ export default function AdminApp() {
               element={
                 <AnimatedOutlet>
                   <AdminCategoriesManager />
+                </AnimatedOutlet>
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <AnimatedOutlet>
+                  <AdminOrders />
+                </AnimatedOutlet>
+              }
+            />
+            <Route
+              path="orders/:orderId"
+              element={
+                <AnimatedOutlet>
+                  <AdminOrders />
                 </AnimatedOutlet>
               }
             />

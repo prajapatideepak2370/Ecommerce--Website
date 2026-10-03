@@ -25,6 +25,9 @@ const adminAuditLogSchema = new Schema(
         "category.delete",
         "category.image.upload",
         "category.image.delete",
+        "order.status.updated",
+        "order.payment.updated",
+        "order.refunded",
         "login.success",
         "login.fail",
         "logout",
@@ -34,7 +37,7 @@ const adminAuditLogSchema = new Schema(
     },
     entityType: {
       type: String,
-      enum: ["product", "category", "auth"],
+      enum: ["product", "category", "order", "auth"],
       required: true,
       index: true,
     },
