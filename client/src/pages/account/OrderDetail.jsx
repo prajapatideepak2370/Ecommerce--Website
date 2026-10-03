@@ -93,11 +93,11 @@ function Tracker({ status = "Processing" }) {
 
 function Row({ label, value, mono = false }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-ink-800/60 last:border-0">
-      <div className="text-xs uppercase tracking-[0.16em] text-ink-400 min-w-[112px] w-28 shrink-0 pt-1">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 py-2 border-b border-ink-800/60 last:border-0">
+      <div className="min-w-0 text-xs uppercase tracking-[0.16em] text-ink-400 pt-1">
         {label}
       </div>
-      <div className={`flex-1 text-sm min-w-0 break-words ${mono ? "font-mono" : ""}`}>
+      <div className={`min-w-0 text-right text-sm [overflow-wrap:anywhere] ${mono ? "font-mono" : ""}`}>
         {value}
       </div>
     </div>
@@ -236,7 +236,7 @@ export default function OrderDetail() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 space-y-5">
+        <div className="min-w-0 lg:col-span-2 space-y-5">
           <div className="card p-5 md:p-6">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-ink-400 mb-4">
               <Package size={14} /> Items ({items.length})
@@ -312,7 +312,7 @@ export default function OrderDetail() {
           )}
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <div className="card p-5 md:p-6">
             <div className="text-xs uppercase tracking-[0.16em] text-ink-400 mb-2">
               Summary

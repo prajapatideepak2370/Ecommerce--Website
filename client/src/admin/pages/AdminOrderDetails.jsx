@@ -61,11 +61,11 @@ function Section({ title, icon: Icon, children, right }) {
 
 function Row({ label, value, mono = false }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-ink-800/60 last:border-0">
-      <div className="text-xs uppercase tracking-[0.16em] text-ink-400 min-w-[112px] w-28 shrink-0 pt-1">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 py-2 border-b border-ink-800/60 last:border-0">
+      <div className="min-w-0 text-xs uppercase tracking-[0.16em] text-ink-400 pt-1">
         {label}
       </div>
-      <div className={`flex-1 text-sm min-w-0 break-words ${mono ? "font-mono" : ""}`}>
+      <div className={`min-w-0 text-right text-sm [overflow-wrap:anywhere] ${mono ? "font-mono" : ""}`}>
         {value}
       </div>
     </div>
@@ -377,7 +377,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
       </Section>
 
       <div className="grid lg:grid-cols-3 gap-5 mt-5">
-        <div className="lg:col-span-2 space-y-5">
+        <div className="min-w-0 lg:col-span-2 space-y-5">
           <Section
             title={`Items · ${items.length} SKU / ${qtyTotal} units`}
             icon={Package}
@@ -464,7 +464,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
           </Section>
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Section title="Order summary" icon={CheckCircle2}>
             <Row label="Subtotal" value={formatPrice(order.subtotal)} />
             <Row label="Taxes" value={formatPrice(order.tax)} />
@@ -487,7 +487,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
                 customer.email ? (
                   <a
                     href={`mailto:${customer.email}`}
-                    className="text-brand-300 hover:underline inline-flex items-start max-w-full gap-1"
+                    className="text-brand-300 hover:underline inline-flex items-start justify-end max-w-full gap-1"
                     title={customer.email}
                   >
                     <Mail size={12} className="mt-0.5 shrink-0" />
@@ -507,7 +507,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
                 customer.phone || address.phone ? (
                   <a
                     href={`tel:${customer.phone || address.phone}`}
-                    className="text-brand-300 hover:underline inline-flex items-center gap-1"
+                    className="text-brand-300 hover:underline inline-flex items-center justify-end max-w-full gap-1"
                   >
                     <Phone size={12} className="mt-0.5 shrink-0" />
                     <span className="break-all">{customer.phone || address.phone}</span>
