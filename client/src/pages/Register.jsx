@@ -40,12 +40,12 @@ export default function Register() {
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="input-label">Full name</label>
-            <input required name="name" value={form.name} onChange={onChange} placeholder="Jasvinder Singh" className="w-full" autoComplete="name" />
+            <input required name="name" value={form.name} onChange={onChange} placeholder="Your full name" className="w-full" autoComplete="name" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="input-label">Username</label>
-              <input required name="username" value={form.username} onChange={onChange} placeholder="jasvinder" className="w-full" autoComplete="username" />
+              <input required name="username" value={form.username} onChange={onChange} placeholder="yourusername" className="w-full" autoComplete="username" />
             </div>
             <div>
               <label className="input-label">Phone <span className="text-ink-500">(optional)</span></label>

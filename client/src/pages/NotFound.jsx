@@ -19,7 +19,7 @@ export default function NotFound() {
         <div className="font-display text-8xl font-bold gradient-text mb-2">404</div>
         <h1 className="font-display text-2xl md:text-3xl font-semibold mb-2">This voxel is lost in space</h1>
         <p className="text-ink-300 mb-8">
-          The page you're looking for doesn't exist, got moved, or was deleted by one of our three founders. (Probably Vishal.)
+          The page you are looking for doesn&apos;t exist, may have moved, or may have been removed.
         </p>
         <Link to="/" className="btn-primary inline-flex"><ArrowLeft size={18} /> Back home</Link>
       </div>

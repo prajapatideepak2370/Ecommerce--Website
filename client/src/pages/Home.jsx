@@ -244,7 +244,7 @@ export default function Home() {
               Featured <span className="gradient-text">Drops</span>
             </h2>
             <p className="text-ink-400 mt-1 text-sm">
-              Hand-picked by Jasvinder, Shruti, and Vishal.
+              Curated for a more thoughtful shopping experience.
             </p>
           </div>
         </div>
@@ -285,41 +285,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* BUILT BY THREE */}
+      {/* OUR MISSION */}
       <section className="page-container py-16">
         <div className="card p-8 md:p-12 relative overflow-hidden">
           <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl" />
           <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
           <div className="relative grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <div className="chip mb-4">The Founders</div>
+              <div className="chip mb-4">Our Mission</div>
               <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight">
-                Built by three creators.
+                Make commerce
                 <br />
-                <span className="gradient-text">
-                  Jasvinder × Shruti × Vishal
-                </span>
+                <span className="gradient-text">feel alive.</span>
               </h3>
               <p className="text-ink-300 mt-4 max-w-lg leading-relaxed">
-                Three voices, one obsession: making commerce feel like play. We
-                sweat the typography, the weight of the shadows, the way a
-                product rotates in 3D — so that every visit feels like entering
-                a room you want to stay in.
+                We create immersive shopping experiences that help people connect
+                with the value, story, and craft behind every product — before
+                they ever reach checkout.
               </p>
               <Link to="/about" className="btn-outline mt-6">
-                Meet the team <ArrowRight size={16} />
+                Explore our vision <ArrowRight size={16} />
               </Link>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              {["Jasvinder", "Shruti", "Vishal"].map((n) => (
-                <div key={n} className="text-center">
+              {[
+                { label: "Immersive", value: "3D" },
+                { label: "Intentional", value: "Design" },
+                { label: "Meaningful", value: "Trust" },
+              ].map((item) => (
+                <div key={item.label} className="text-center">
                   <div className="aspect-square rounded-2xl bg-gradient-to-br from-brand-600/40 to-accent/30 border border-ink-700 mb-3 grid place-items-center">
-                    <span className="font-display text-2xl font-semibold">
-                      {n[0]}
+                    <span className="font-display text-xl font-semibold">
+                      {item.value}
                     </span>
                   </div>
-                  <div className="font-medium">{n}</div>
-                  <div className="text-xs text-ink-400">Founder</div>
+                  <div className="font-medium">{item.label}</div>
                 </div>
               ))}
             </div>

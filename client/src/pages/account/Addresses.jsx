@@ -13,7 +13,7 @@ export default function Addresses() {
             {i === 0 && <span className="absolute top-4 right-4 chip !py-0.5 text-xs border-brand-500/30 bg-brand-500/10 text-brand-200">Default</span>}
             <div className="flex items-center gap-2 mb-2"><MapPin size={16} className="text-brand-300" /><span className="font-medium">{l}</span></div>
             <div className="text-sm text-ink-200 space-y-1">
-              <div>Jasvinder Singh · +91 98765 43210</div>
+              <div>Customer Name · +91 98765 43210</div>
               <div className="text-ink-400">123 Voxel Lane, Sector 7<br />Chandigarh, Punjab, 160017, India</div>
             </div>
             <div className="mt-4 flex gap-2">
