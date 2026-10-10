@@ -1,9 +1,21 @@
 import { motion } from "framer-motion";
 
 const pillars = [
-  { title: "Immersive discovery", description: "Turn product browsing into a sensory, confidence-building experience." },
-  { title: "Crafted trust", description: "Show details, depth, and material story before the customer ever clicks buy." },
-  { title: "Meaningful commerce", description: "Help customers feel informed, inspired, and ready to purchase with clarity." },
+  {
+    title: "Immersive discovery",
+    description:
+      "Turn product browsing into a sensory, confidence-building experience.",
+  },
+  {
+    title: "Crafted trust",
+    description:
+      "Show details, depth, and material story before the customer ever clicks buy.",
+  },
+  {
+    title: "Meaningful commerce",
+    description:
+      "Help customers feel informed, inspired, and ready to purchase with clarity.",
+  },
 ];
 
 export default function About() {
@@ -39,8 +51,12 @@ export default function About() {
             <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-brand-500/40 to-accent/30 grid place-items-center text-3xl border border-ink-700">
               {i === 0 ? "✦" : i === 1 ? "◌" : "◎"}
             </div>
-            <div className="font-display text-xl font-semibold">{pillar.title}</div>
-            <p className="text-sm text-brand-300 mt-2 leading-relaxed">{pillar.description}</p>
+            <div className="font-display text-xl font-semibold">
+              {pillar.title}
+            </div>
+            <p className="text-sm text-brand-300 mt-2 leading-relaxed">
+              {pillar.description}
+            </p>
           </motion.div>
         ))}
       </section>
@@ -51,15 +67,15 @@ export default function About() {
         </h2>
         <p>
           We build digital shopping experiences that help people understand the
-          value, craftsmanship, and emotion behind every product. When a customer
-          can see, feel, and explore what makes something special, confidence grows
-          naturally.
+          value, craftsmanship, and emotion behind every product. When a
+          customer can see, feel, and explore what makes something special,
+          confidence grows naturally.
         </p>
         <p>
           Through beautiful design, interactive detail, and a more intentional
-          buying journey, we aim to make commerce feel clear, inspiring, and human.
-          That's the future we believe in — not just selling products, but helping
-          people connect with them before they ever purchase.
+          buying journey, we aim to make commerce feel clear, inspiring, and
+          human. That's the future we believe in — not just selling products,
+          but helping people connect with them before they ever purchase.
         </p>
       </section>
     </div>

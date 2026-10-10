@@ -252,17 +252,35 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {featuredProducts.map((product) => {
             const image = product.images?.[0]?.url;
-            const price = product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price;
+            const price =
+              product.discountPrice && product.discountPrice > 0
+                ? product.discountPrice
+                : product.price;
             return (
-              <div key={product._id} className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow">
+              <div
+                key={product._id}
+                className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow"
+              >
                 <Link to={`/product/${product.slug}`} className="block">
                   <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
-                    {image ? <img src={image} alt={product.name} className="w-full h-full object-cover" /> : <Box size={36} className="text-brand-300" />}
+                    {image ? (
+                      <img
+                        src={image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Box size={36} className="text-brand-300" />
+                    )}
                   </div>
                   <div className="mt-3 px-1">
-                    <div className="font-medium line-clamp-2 min-h-12">{product.name}</div>
+                    <div className="font-medium line-clamp-2 min-h-12">
+                      {product.name}
+                    </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="font-semibold">₹{price.toLocaleString("en-IN")}</span>
+                      <span className="font-semibold">
+                        ₹{price.toLocaleString("en-IN")}
+                      </span>
                       <ArrowRight size={16} className="text-ink-400" />
                     </div>
                   </div>
@@ -299,9 +317,9 @@ export default function Home() {
                 <span className="gradient-text">feel alive.</span>
               </h3>
               <p className="text-ink-300 mt-4 max-w-lg leading-relaxed">
-                We create immersive shopping experiences that help people connect
-                with the value, story, and craft behind every product — before
-                they ever reach checkout.
+                We create immersive shopping experiences that help people
+                connect with the value, story, and craft behind every product —
+                before they ever reach checkout.
               </p>
               <Link to="/about" className="btn-outline mt-6">
                 Explore our vision <ArrowRight size={16} />

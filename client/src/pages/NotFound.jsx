@@ -16,12 +16,19 @@ export default function NotFound() {
             <Box size={60} className="text-white animate-float-slow" />
           </div>
         </motion.div>
-        <div className="font-display text-8xl font-bold gradient-text mb-2">404</div>
-        <h1 className="font-display text-2xl md:text-3xl font-semibold mb-2">This voxel is lost in space</h1>
+        <div className="font-display text-8xl font-bold gradient-text mb-2">
+          404
+        </div>
+        <h1 className="font-display text-2xl md:text-3xl font-semibold mb-2">
+          This voxel is lost in space
+        </h1>
         <p className="text-ink-300 mb-8">
-          The page you are looking for doesn&apos;t exist, may have moved, or may have been removed.
+          The page you are looking for doesn&apos;t exist, may have moved, or
+          may have been removed.
         </p>
-        <Link to="/" className="btn-primary inline-flex"><ArrowLeft size={18} /> Back home</Link>
+        <Link to="/" className="btn-primary inline-flex">
+          <ArrowLeft size={18} /> Back home
+        </Link>
       </div>
     </div>
   );
