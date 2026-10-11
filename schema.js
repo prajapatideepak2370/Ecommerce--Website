@@ -164,11 +164,14 @@ module.exports.orderSchemas = {
       postalCode: Joi.string().required(),
       country: Joi.string().required(),
     }),
-    paymentMethod: Joi.string().valid("COD", "UPI").default("COD"),
+    paymentMethod: Joi.string().valid("Razorpay").default("Razorpay"),
     paymentReference: Joi.string().allow("", null).default(""),
     paymentStatus: Joi.string()
-      .valid("Pending", "Paid", "Failed", "Refunded")
+      .valid("Pending")
       .default("Pending"),
+    razorpayOrderId: Joi.string().allow("", null),
+    razorpayPaymentId: Joi.string().allow("", null),
+    razorpaySignature: Joi.string().allow("", null),
     items: Joi.array().items(
       Joi.object({
         product: Joi.string().required(),
@@ -181,6 +184,75 @@ module.exports.orderSchemas = {
         }).unknown(true),
       }),
     ),
+  })
+    .xor("addressId", "shippingAddress")
+    .messages({
+      "object.missing": "Provide either addressId or shippingAddress.",
+    }),
+
+  razorpayCreate: Joi.object({
+    addressId: Joi.string(),
+    shippingAddress: Joi.object({
+      label: Joi.string(),
+      fullName: Joi.string().required(),
+      phone: Joi.string().required(),
+      line1: Joi.string().required(),
+      line2: Joi.string().allow("", null),
+      city: Joi.string().required(),
+      state: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+    }),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          product: Joi.string().required(),
+          name: Joi.string().required(),
+          image: Joi.string().allow("", null).default(""),
+          quantity: Joi.number().integer().min(1).required(),
+          unitPrice: Joi.number().min(0).required(),
+          productMeta: Joi.object({
+            slug: Joi.string().allow("", null),
+          }).unknown(true),
+        }),
+      )
+      .min(1),
+  })
+    .xor("addressId", "shippingAddress")
+    .messages({
+      "object.missing": "Provide either addressId or shippingAddress.",
+    }),
+
+  razorpayVerify: Joi.object({
+    addressId: Joi.string(),
+    shippingAddress: Joi.object({
+      label: Joi.string(),
+      fullName: Joi.string().required(),
+      phone: Joi.string().required(),
+      line1: Joi.string().required(),
+      line2: Joi.string().allow("", null),
+      city: Joi.string().required(),
+      state: Joi.string().required(),
+      postalCode: Joi.string().required(),
+      country: Joi.string().required(),
+    }),
+    razorpay_order_id: Joi.string().required(),
+    razorpay_payment_id: Joi.string().required(),
+    razorpay_signature: Joi.string().required(),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          product: Joi.string().required(),
+          name: Joi.string().required(),
+          image: Joi.string().allow("", null).default(""),
+          quantity: Joi.number().integer().min(1).required(),
+          unitPrice: Joi.number().min(0).required(),
+          productMeta: Joi.object({
+            slug: Joi.string().allow("", null),
+          }).unknown(true),
+        }),
+      )
+      .min(1),
   })
     .xor("addressId", "shippingAddress")
     .messages({

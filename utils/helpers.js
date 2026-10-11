@@ -39,14 +39,9 @@ const computeTotals = (items, productMap) => {
     return sum + price * item.quantity;
   }, 0);
 
-  const taxPercent = Number(process.env.TAX_PERCENT) || 0;
-  const tax = +(subtotal * taxPercent / 100).toFixed(2);
-
-  const freeThreshold = Number(process.env.FREE_SHIPPING_THRESHOLD) || Infinity;
-  const flatShipping = Number(process.env.SHIPPING_FEE) || 0;
-  const shippingFee = subtotal >= freeThreshold ? 0 : flatShipping;
-
-  const totalAmount = +(subtotal + tax + shippingFee).toFixed(2);
+  const tax = 0;
+  const shippingFee = 0;
+  const totalAmount = subtotal;
 
   return { subtotal, tax, shippingFee, totalAmount };
 };

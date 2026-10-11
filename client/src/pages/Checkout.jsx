@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { CreditCard, QrCode, Truck } from "lucide-react";
-import toast from "react-hot-toast";
+import { CreditCard, Loader2, ShieldCheck, Truck } from "lucide-react";
 import { clearCart, selectCartItems } from "../store/cartSlice.js";
 import { orderApi } from "../api/endpoints.js";
-import { getErrorMessage } from "../api/client.js";
 
 const EMPTY_ADDRESS = {
   fullName: "",
@@ -21,40 +19,83 @@ const EMPTY_ADDRESS = {
 const formatPrice = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
-function TestBarcode({ bars, reference }) {
-  let x = 8;
-  const marks = bars.map((width, index) => {
-    const mark = { x, width, key: index };
-    x += width + (index % 4 === 0 ? 3 : 2);
-    return mark;
+function loadRazorpayScript() {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== "undefined" && window.Razorpay) {
+      return resolve(window.Razorpay);
+    }
+    const existing = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+    );
+    if (existing) {
+      const timeout = window.setTimeout(
+        () => reject(new Error("Failed to load Razorpay checkout")),
+        15000,
+      );
+      const onLoad = () => {
+        window.clearTimeout(timeout);
+        if (window.Razorpay) resolve(window.Razorpay);
+        else reject(new Error("Failed to load Razorpay checkout"));
+      };
+      const onError = () => {
+        window.clearTimeout(timeout);
+        existing.remove();
+        reject(new Error("Failed to load Razorpay checkout"));
+      };
+      existing.addEventListener("load", onLoad, { once: true });
+      existing.addEventListener(
+        "error",
+        onError,
+        { once: true },
+      );
+      if (window.Razorpay) {
+        window.clearTimeout(timeout);
+        resolve(window.Razorpay);
+      }
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => {
+      if (window.Razorpay) resolve(window.Razorpay);
+      else reject(new Error("Failed to load Razorpay checkout"));
+    };
+    script.onerror = () => {
+      script.remove();
+      reject(new Error("Failed to load Razorpay checkout"));
+    };
+    document.body.appendChild(script);
   });
+}
 
-  return (
-    <div className="border border-ink-700 bg-white p-3 rounded-lg text-center">
-      <svg
-        role="img"
-        aria-label="Random test barcode, not a scannable UPI payment code"
-        viewBox={`0 0 ${Math.max(x, 320)} 96`}
-        className="w-full h-24"
-        preserveAspectRatio="none"
-      >
-        <rect width="100%" height="100%" fill="white" />
-        {marks.map((mark) => (
-          <rect
-            key={mark.key}
-            x={mark.x}
-            y={8}
-            width={mark.width}
-            height={80}
-            fill="#111827"
-          />
-        ))}
-      </svg>
-      <div className="font-mono text-xs tracking-widest text-ink-950">
-        {reference}
-      </div>
-    </div>
-  );
+function getPaymentErrorMessage(error) {
+  const status = error?.response?.status;
+  const code = error?.code;
+  if (!error?.response) {
+    return code === "ECONNABORTED"
+      ? "The payment request timed out. Check your connection and try again."
+      : "We couldn't reach the payment service. Check your connection and try again.";
+  }
+  if (status === 401) {
+    return "Your session has expired. Sign in again before placing your order.";
+  }
+  if (status === 403) {
+    return "You are not allowed to complete this payment. Please sign in and try again.";
+  }
+  if (status === 429) {
+    return "Too many payment attempts. Please wait a moment and try again.";
+  }
+  if (status >= 500) {
+    return "The payment service is temporarily unavailable. Your cart is safe; please try again shortly.";
+  }
+  if (status === 400 || status === 404 || status === 409 || status === 422) {
+    return (
+      error.response?.data?.error?.message ||
+      "We couldn't confirm this payment. Please review your cart and try again."
+    );
+  }
+  return "We couldn't start the payment. Please try again.";
 }
 
 export default function Checkout() {
@@ -65,15 +106,10 @@ export default function Checkout() {
     (state) => state.cart,
   );
   const [address, setAddress] = useState(EMPTY_ADDRESS);
-  const [paymentMethod, setPaymentMethod] = useState("COD");
-  const [upiStatus, setUpiStatus] = useState("waiting");
   const [error, setError] = useState("");
-  const [paymentReference] = useState(
-    () => `TVX${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-  );
-  const [barcode] = useState(() =>
-    Array.from({ length: 96 }, () => Math.floor(Math.random() * 4) + 1),
-  );
+  const [paymentNotice, setPaymentNotice] = useState("");
+  const [paying, setPaying] = useState(false);
+  const paymentInProgress = useRef(false);
 
   const updateAddress = (event) => {
     setAddress((current) => ({
@@ -82,57 +118,171 @@ export default function Checkout() {
     }));
   };
 
-  const simulateUpiPayment = (result) => {
-    setUpiStatus(result);
-    if (result === "paid") toast.success("Test UPI payment marked successful");
-    else toast.error("Test UPI payment failed. Order was not placed.");
-  };
+  const buildOrderItems = () =>
+    items.map((item) => ({
+      product: item.product || item._id,
+      name: item.productMeta?.name || item.name || "Product",
+      image: item.productMeta?.images?.[0]?.url || item.image || "",
+      quantity: Number(item.quantity || 1),
+      unitPrice: Number(
+        item.unitPrice ||
+          item.productMeta?.discountPrice ||
+          item.productMeta?.price ||
+          0,
+      ),
+      productMeta: item.productMeta || {},
+    }));
 
-  const placeOrder = async (event) => {
+  const handlePayment = async (event) => {
     event.preventDefault();
     setError("");
+    setPaymentNotice("");
+
     if (!items.length) {
       setError("Your cart is empty.");
       return;
     }
-    if (paymentMethod === "UPI" && upiStatus !== "paid") {
-      setError(
-        "Complete the UPI test payment successfully before placing the order.",
-      );
+
+    const required = ["fullName", "phone", "line1", "city", "state", "postalCode", "country"];
+    const missing = required.find((field) => !address[field]?.trim());
+    if (missing) {
+      setError("Please fill in all required shipping address fields.");
       return;
     }
+    if (paymentInProgress.current) return;
+
+    const orderItems = buildOrderItems();
 
     try {
-      const payload = {
+      paymentInProgress.current = true;
+      setPaying(true);
+
+      const Razorpay = await loadRazorpayScript();
+
+      const razorpayOrder = await orderApi.createRazorpayOrder({
         shippingAddress: address,
-        paymentMethod,
-        paymentReference: paymentMethod === "UPI" ? paymentReference : "",
-        paymentStatus: paymentMethod === "UPI" ? "Paid" : "Pending",
-        items: items.map((item) => ({
-          product: item.product || item._id,
-          name: item.productMeta?.name || item.name || "Product",
-          image: item.productMeta?.images?.[0]?.url || item.image || "",
-          quantity: Number(item.quantity || 1),
-          unitPrice: Number(
-            item.unitPrice ||
-              item.productMeta?.discountPrice ||
-              item.productMeta?.price ||
-              0,
-          ),
-          productMeta: item.productMeta || {},
-        })),
+        items: orderItems,
+      });
+
+      const amountPaise = Number(razorpayOrder.amountPaise);
+      if (
+        !razorpayOrder.key ||
+        !razorpayOrder.orderId ||
+        typeof razorpayOrder.isTestMode !== "boolean" ||
+        !Number.isSafeInteger(amountPaise) ||
+        amountPaise < 100
+      ) {
+        throw new Error("Invalid payment order response");
+      }
+
+      if (razorpayOrder.isTestMode) {
+        setPaymentNotice(
+          "Razorpay Test Mode is active. UPI QR codes cannot be scanned in Test Mode. Use another test payment method; UPI QR scanning requires Live Mode.",
+        );
+      }
+
+      const options = {
+        key: razorpayOrder.key,
+        amount: amountPaise,
+        currency: razorpayOrder.currency || "INR",
+        name: "TRYVOXEL³",
+        description: razorpayOrder.isTestMode
+          ? "Test Mode — UPI QR scanning is unavailable"
+          : "Order Payment",
+        order_id: razorpayOrder.orderId,
+        config: {
+          display: {
+            blocks: {
+              paymentOptions: {
+                name: "All Payment Options",
+                instruments: [
+                  { method: "upi" },
+                  { method: "card" },
+                  { method: "wallet" },
+                  { method: "netbanking" },
+                ],
+              },
+            },
+            sequence: ["block.paymentOptions"],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
+        },
+        prefill: {
+          name: address.fullName,
+          contact: address.phone,
+        },
+        notes: {
+          receipt: razorpayOrder.receipt,
+        },
+        theme: {
+          color: "#0f172a",
+        },
+        handler: async (response) => {
+          try {
+            const created = await orderApi.verifyRazorpayPayment({
+              shippingAddress: address,
+              items: orderItems,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            const orderId = created?._id || created?.orderNumber;
+            if (!orderId) {
+              throw new Error("The payment was not confirmed as an order");
+            }
+            try {
+              await dispatch(clearCart()).unwrap();
+            } catch (_clearErr) {
+              // ignore cart clear errors after successful order
+            }
+            navigate(`/order/confirmation/${orderId}`, {
+              state: { order: created },
+            });
+          } catch (verifyErr) {
+            setError(
+              verifyErr?.response?.status === 409
+                ? "Your payment is still being confirmed. Check My Orders before trying to pay again."
+                : "The payment may have gone through, but we couldn't confirm your order. Please check My Orders before trying again or contact support.",
+            );
+            paymentInProgress.current = false;
+            setPaying(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            paymentInProgress.current = false;
+            setPaying(false);
+            setError("Payment was cancelled. You can try again.");
+          },
+        },
       };
 
-      const created = await orderApi.create(payload);
-      const orderId = created?._id || created?.orderNumber;
-      try {
-        await dispatch(clearCart()).unwrap();
-      } catch (_clearErr) {
-        // ignore cart clear errors after successful order
-      }
-      navigate(`/order/confirmation/${orderId}`, { state: { order: created } });
+      const rzp = new Razorpay(options);
+      rzp.on("payment.failed", () => {
+        paymentInProgress.current = false;
+        setPaying(false);
+        setError(
+          "Your payment failed, or the UPI QR expired. Start a fresh checkout to get a new QR code, or try another payment method.",
+        );
+      });
+      rzp.open();
     } catch (e) {
-      setError(getErrorMessage(e, "Could not place your order. Please try again."));
+      paymentInProgress.current = false;
+      setPaying(false);
+      setError(
+        e?.message === "Invalid payment order response"
+          ? "We couldn't confirm the payment amount. Refresh your cart and try again."
+          : e?.response
+            ? getPaymentErrorMessage(e)
+            : e?.message?.includes("Razorpay checkout")
+              ? "The payment window couldn't load. Check your connection and try again."
+              : e?.code === "ECONNABORTED"
+                ? getPaymentErrorMessage(e)
+                : "We couldn't start your payment. Please try again.",
+      );
     }
   };
 
@@ -160,7 +310,7 @@ export default function Checkout() {
         <span className="gradient-text">Checkout</span>
       </h1>
       <form
-        onSubmit={placeOrder}
+        onSubmit={handlePayment}
         className="grid lg:grid-cols-[1fr_380px] gap-6"
       >
         <div className="space-y-6">
@@ -202,91 +352,31 @@ export default function Checkout() {
 
           <section className="card p-6 md:p-8">
             <h2 className="font-semibold mb-4">Payment method</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                {
-                  id: "COD",
-                  label: "Cash on delivery",
-                  icon: Truck,
-                  detail: "Pay when your order arrives",
-                },
-                {
-                  id: "UPI",
-                  label: "UPI test payment",
-                  icon: QrCode,
-                  detail: "Use a simulated payment result",
-                },
-              ].map(({ id, label, icon: Icon, detail }) => (
-                <label
-                  key={id}
-                  className={`cursor-pointer border rounded-lg p-4 flex gap-3 ${paymentMethod === id ? "border-brand-400 bg-brand-500/10" : "border-ink-700"}`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={id}
-                    checked={paymentMethod === id}
-                    onChange={() => {
-                      setPaymentMethod(id);
-                      setUpiStatus("waiting");
-                    }}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="flex items-center gap-2 font-medium">
-                      <Icon size={17} /> {label}
-                    </span>
-                    <span className="block text-xs text-ink-400 mt-1">
-                      {detail}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {paymentMethod === "UPI" && (
-              <div className="mt-5 grid sm:grid-cols-[220px_1fr] gap-5 items-center">
-                <TestBarcode bars={barcode} reference={paymentReference} />
-                <div>
-                  <div className="text-sm font-medium mb-1">
-                    Test payment reference
-                  </div>
-                  <p className="font-mono text-brand-200 mb-2">
-                    {paymentReference}
-                  </p>
-                  <p className="text-xs text-ink-400 mb-4">
-                    This random barcode is for demo testing only. It is not a
-                    scannable UPI QR and does not transfer money.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => simulateUpiPayment("paid")}
-                      className="btn-primary !py-2 text-sm"
-                    >
-                      Simulate success
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => simulateUpiPayment("failed")}
-                      className="btn-ghost !py-2 text-sm"
-                    >
-                      Simulate failure
-                    </button>
-                  </div>
-                  <p
+            <div className="border rounded-lg p-4 flex gap-3 border-brand-400 bg-brand-500/10">
+              <CreditCard size={20} className="text-brand-300 mt-0.5" />
+              <span>
+                <span className="flex items-center gap-2 font-medium">
+                  Razorpay
+                </span>
+                <span className="block text-xs text-ink-400 mt-1">
+                  Pay with UPI apps like PhonePe, Paytm, or Google Pay, as well
+                  as cards, net banking, or wallets. Choose your UPI app in the
+                  Razorpay payment window.
+                </span>
+                {paymentNotice && (
+                  <span
                     role="status"
-                    className={`text-sm mt-3 ${upiStatus === "paid" ? "text-emerald-300" : upiStatus === "failed" ? "text-rose-300" : "text-ink-400"}`}
+                    className="block mt-2 text-xs text-amber-300"
                   >
-                    {upiStatus === "paid"
-                      ? "Payment test successful. You can place the order."
-                      : upiStatus === "failed"
-                        ? "Payment test failed. The order will not be confirmed."
-                        : "Waiting for test payment result."}
-                  </p>
-                </div>
-              </div>
-            )}
+                    {paymentNotice}
+                  </span>
+                )}
+              </span>
+            </div>
+            <p className="flex items-center gap-2 mt-4 text-xs text-ink-400">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              Payments are secured and verified by Razorpay.
+            </p>
           </section>
         </div>
 
@@ -317,12 +407,12 @@ export default function Checkout() {
               <dd>{formatPrice(subtotal)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-ink-400">Tax</dt>
+              <dt className="text-ink-400">Tax / GST</dt>
               <dd>{formatPrice(tax)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-ink-400">Shipping</dt>
-              <dd>{shippingFee ? formatPrice(shippingFee) : "Free"}</dd>
+              <dd>{formatPrice(shippingFee)}</dd>
             </div>
           </dl>
           <div className="h-px bg-ink-800 my-4" />
@@ -339,10 +429,19 @@ export default function Checkout() {
             <CreditCard size={14} className="shrink-0" /> By confirming, your
             order will be saved to your account and visible in My Orders.
           </p>
-          <button type="submit" className="btn-primary w-full !py-3">
-            {paymentMethod === "COD"
-              ? "Confirm cash on delivery"
-              : "Confirm UPI order"}
+          <button
+            type="submit"
+            disabled={paying}
+            className="btn-primary w-full !py-3 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {paying ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Processing
+                payment…
+              </>
+            ) : (
+              `Pay ${formatPrice(totalAmount)}`
+            )}
           </button>
         </aside>
       </form>

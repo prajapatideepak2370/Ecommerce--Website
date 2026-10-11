@@ -17,14 +17,19 @@ const buildCartTotals = (items) => {
     );
     return sum + price * Number(item.quantity || 1);
   }, 0);
-  const tax = subtotal * 0.18;
-  const shippingFee = subtotal > 1999 ? 0 : 199;
+  const tax = 0;
+  const shippingFee = 0;
   return {
     subtotal,
     tax,
     shippingFee,
-    totalAmount: subtotal + tax + shippingFee,
+    totalAmount: subtotal,
   };
+};
+
+const applyCartPayload = (state, payload) => {
+  state.items = payload?.items || [];
+  Object.assign(state, buildCartTotals(state.items));
 };
 
 const readLocalCart = () => {
@@ -40,7 +45,13 @@ const readLocalCart = () => {
       return !productId.startsWith("demo-") || DEMO_PRODUCT_IDS.has(productId);
     });
     const currentCart = { ...cart, items, ...buildCartTotals(items) };
-    if (items.length !== cart.items.length) {
+    if (
+      items.length !== cart.items.length ||
+      cart.tax !== currentCart.tax ||
+      cart.shippingFee !== currentCart.shippingFee ||
+      cart.totalAmount !== currentCart.totalAmount ||
+      cart.subtotal !== currentCart.subtotal
+    ) {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(currentCart));
     }
     return currentCart;
@@ -257,11 +268,7 @@ const cartSlice = createSlice({
         s.error = null;
       })
       .addCase(fetchCart.fulfilled, (s, { payload }) => {
-        s.items = payload?.items || [];
-        s.subtotal = payload?.subtotal || 0;
-        s.tax = payload?.tax || 0;
-        s.shippingFee = payload?.shippingFee || 0;
-        s.totalAmount = payload?.totalAmount || 0;
+        applyCartPayload(s, payload);
         s.loading = false;
       })
       .addCase(fetchCart.rejected, (s, { payload }) => {
@@ -270,11 +277,7 @@ const cartSlice = createSlice({
       })
       .addCase(addToCart.fulfilled, (s, { payload }) => {
         if (payload?.items) {
-          s.items = payload.items;
-          s.subtotal = payload.subtotal || 0;
-          s.tax = payload.tax || 0;
-          s.shippingFee = payload.shippingFee || 0;
-          s.totalAmount = payload.totalAmount || 0;
+          applyCartPayload(s, payload);
           s.error = null;
         }
       })
@@ -283,11 +286,7 @@ const cartSlice = createSlice({
       })
       .addCase(updateQty.fulfilled, (s, { payload }) => {
         if (payload?.items) {
-          s.items = payload.items;
-          s.subtotal = payload.subtotal || 0;
-          s.tax = payload.tax || 0;
-          s.shippingFee = payload.shippingFee || 0;
-          s.totalAmount = payload.totalAmount || 0;
+          applyCartPayload(s, payload);
         }
       })
       .addCase(updateQty.rejected, (s, { payload }) => {
@@ -295,11 +294,7 @@ const cartSlice = createSlice({
       })
       .addCase(removeItem.fulfilled, (s, { payload }) => {
         if (payload?.items) {
-          s.items = payload.items;
-          s.subtotal = payload.subtotal || 0;
-          s.tax = payload.tax || 0;
-          s.shippingFee = payload.shippingFee || 0;
-          s.totalAmount = payload.totalAmount || 0;
+          applyCartPayload(s, payload);
         }
       })
       .addCase(removeItem.rejected, (s, { payload }) => {

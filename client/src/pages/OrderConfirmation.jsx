@@ -81,10 +81,7 @@ export default function OrderConfirmation() {
           </div>
           <div>
             <div className="text-emerald-300">
-              {order?.payment?.status === "Pending" &&
-              order?.payment?.provider === "COD"
-                ? "Pending on delivery"
-                : order?.payment?.status || "Unknown"}
+              {order?.payment?.status || "Unknown"}
             </div>
             <div className="text-brand-300 font-medium">
               {order?.orderStatus || "Unknown"}

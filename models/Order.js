@@ -12,7 +12,7 @@ const ORDER_STATUSES = [
 ];
 
 const PAYMENT_STATUSES = ["Pending", "Paid", "Failed", "Refunded"];
-const PAYMENT_PROVIDERS = ["COD", "UPI"];
+const PAYMENT_PROVIDERS = ["COD", "UPI", "Razorpay"];
 
 const orderItemSchema = new Schema(
   {
@@ -42,9 +42,12 @@ const addressSnapshotSchema = new Schema(
 
 const paymentSchema = new Schema(
   {
-    provider: { type: String, enum: PAYMENT_PROVIDERS, default: "COD" },
+    provider: { type: String, enum: PAYMENT_PROVIDERS, default: "Razorpay" },
     reference: { type: String, default: "" },
     status: { type: String, enum: PAYMENT_STATUSES, default: "Pending" },
+    razorpayOrderId: { type: String, default: "" },
+    razorpayPaymentId: { type: String, default: "" },
+    razorpaySignature: { type: String, default: "" },
   },
   { _id: false },
 );
@@ -86,6 +89,15 @@ const orderSchema = new Schema(
 
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index(
+  { "payment.razorpayPaymentId": 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      "payment.razorpayPaymentId": { $type: "string", $gt: "" },
+    },
+  },
+);
 orderSchema.pre("save", function () {
   if (this.isNew || this.isModified("orderStatus")) {
     const last = this.statusHistory[this.statusHistory.length - 1];

@@ -409,16 +409,24 @@ Cancelled
 Refunded
 ```
 
-Payment providers currently represented in the model are:
+Online payments are processed through Razorpay Checkout, which supports UPI,
+cards, net banking, and wallets. UPI apps such as PhonePe, Paytm, and Google
+Pay are presented by Razorpay when available for the customer's device and
+enabled for the merchant account.
 
-```text
-COD
-UPI
-```
+The backend creates Razorpay orders using server-side product prices and
+returns the exact amount in paise for Checkout. It verifies the callback
+signature and fetches the order and payment from Razorpay before marking an
+order as paid; only captured payments are accepted. Repeated verification of a
+successful payment returns the existing order instead of creating a duplicate.
+Razorpay payment methods must also be enabled in the merchant's Razorpay
+account.
 
-### Current implementation status
-
-The order controller methods are currently placeholders that return `501 Not Implemented` and indicate implementation for a later phase. Therefore, the repository currently provides the **order architecture/schema/routes**, rather than a completed production order-processing implementation.
+Razorpay Standard Checkout handles UPI QR generation on desktop; this
+application does not construct UPI payment URLs or QR payloads itself. Razorpay
+Test Mode QR codes are not scannable and disappear shortly after display. Use
+other Razorpay test payment methods in Test Mode; scanning UPI QR codes requires
+Live Mode credentials and UPI QR availability enabled for the merchant account.
 
 ---
 
@@ -687,9 +695,9 @@ CLOUD_NAME=<cloudinary-cloud-name>
 CLOUD_API_KEY=<cloudinary-api-key>
 CLOUD_API_SECRET=<cloudinary-api-secret>
 
-TAX_PERCENT=18
-SHIPPING_FEE=99
-FREE_SHIPPING_THRESHOLD=1999
+TAX_PERCENT=0
+SHIPPING_FEE=0
+FREE_SHIPPING_THRESHOLD=0
 
 LOW_STOCK_THRESHOLD=5
 
@@ -700,6 +708,10 @@ ADMIN_PHONE=+910000000000
 ```
 
 The repository provides these variables in `.env.example`. **Never commit real credentials or secrets to GitHub.**
+
+Customers pay only the displayed product price multiplied by quantity. Checkout
+adds no GST, shipping, or other fees; the cart, order, and Razorpay totals all
+match the product subtotal.
 
 ---
 

@@ -1,6 +1,22 @@
+jest.mock("razorpay", () =>
+  jest.fn(() => ({
+    orders: {
+      create: (params) => global.__razorpayTestState.createOrder(params),
+      fetch: (orderId) => global.__razorpayTestState.fetchOrder(orderId),
+    },
+    payments: {
+      fetch: (paymentId) =>
+        global.__razorpayTestState.fetchPayment(paymentId),
+    },
+  })),
+);
+jest.mock("express-rate-limit", () => () => (_req, _res, next) => next());
+
+const crypto = require("crypto");
 const request = require("supertest");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Order = require("../models/Order");
 const Category = require("../models/Category");
 const { makeTestApp, teardown } = require("./helpers/testApp");
 
@@ -23,6 +39,21 @@ let testProduct;
 let testCategory;
 
 beforeAll(async () => {
+  let orderCounter = 0;
+  global.__razorpayTestState = {
+    orders: new Map(),
+    payments: new Map(),
+    createOrder: jest.fn(async (params) => {
+      const id = `order_test_${++orderCounter}`;
+      const order = { id, ...params };
+      global.__razorpayTestState.orders.set(id, order);
+      return order;
+    }),
+    fetchOrder: jest.fn(async (id) => global.__razorpayTestState.orders.get(id)),
+    fetchPayment: jest.fn(async (id) =>
+      global.__razorpayTestState.payments.get(id),
+    ),
+  };
   app = await makeTestApp();
   await User.register(new User({ ...ADMIN, role: "admin" }), ADMIN.password);
   await User.register(new User(CUSTOMER), CUSTOMER.password);
@@ -54,6 +85,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await teardown();
+  delete global.__razorpayTestState;
 });
 
 const agent = () => request.agent(app);
@@ -98,13 +130,60 @@ const makeItem = (overrides = {}) => ({
   ...overrides,
 });
 
+const createRazorpayOrder = async (customer, items = [makeItem()]) => {
+  const response = await customer
+    .post("/api/v1/orders/razorpay/create-order")
+    .send({ shippingAddress: SHIPPING, items })
+    .expect(200);
+  return response.body.data;
+};
+
+const verifyCapturedPayment = async (
+  customer,
+  razorpayOrder,
+  { paymentId = "pay_test_success", status = "captured", amount } = {},
+) => {
+  const order = global.__razorpayTestState.orders.get(razorpayOrder.orderId);
+  const quantity = Math.round(
+    order.amount / (testProduct.discountPrice * 100),
+  );
+  global.__razorpayTestState.payments.set(paymentId, {
+    id: paymentId,
+    order_id: razorpayOrder.orderId,
+    amount: amount ?? order.amount,
+    currency: order.currency,
+    status,
+  });
+  const signature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(`${razorpayOrder.orderId}|${paymentId}`)
+    .digest("hex");
+  return customer
+    .post("/api/v1/orders/razorpay/verify")
+    .send({
+      shippingAddress: SHIPPING,
+      items: [makeItem({ quantity, unitPrice: 1 })],
+      razorpay_order_id: razorpayOrder.orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    });
+};
+
+beforeEach(() => {
+  global.__razorpayTestState.orders.clear();
+  global.__razorpayTestState.payments.clear();
+  global.__razorpayTestState.createOrder.mockClear();
+  global.__razorpayTestState.fetchOrder.mockClear();
+  global.__razorpayTestState.fetchPayment.mockClear();
+});
+
 describe("POST /api/v1/orders (create order from Checkout)", () => {
-  it("creates a COD order with shippingAddress + items and returns 201 + orderNumber", async () => {
+  it("creates a Razorpay order with shippingAddress + items and returns 201 + orderNumber", async () => {
     const cust = await loginCustomer();
     const stockBefore = (await Product.findById(testProduct._id)).stock;
     const payload = {
       shippingAddress: SHIPPING,
-      paymentMethod: "COD",
+      paymentMethod: "Razorpay",
       paymentReference: "",
       paymentStatus: "Pending",
       items: [makeItem({ quantity: 2 })],
@@ -119,12 +198,15 @@ describe("POST /api/v1/orders (create order from Checkout)", () => {
     expect(order._id).toBeDefined();
     expect(order.orderNumber).toMatch(/^TVX-[0-9A-F]{6}$/);
     expect(order.orderStatus).toBe("Pending");
-    expect(order.payment.provider).toBe("COD");
+    expect(order.payment.provider).toBe("Razorpay");
     expect(order.payment.status).toBe("Pending");
     expect(order.items.length).toBe(1);
     expect(order.items[0].name).toBe(testProduct.name);
     expect(order.items[0].quantity).toBe(2);
-    expect(order.totalAmount).toBeGreaterThan(0);
+    expect(order.subtotal).toBe(testProduct.discountPrice * 2);
+    expect(order.tax).toBe(0);
+    expect(order.shippingFee).toBe(0);
+    expect(order.totalAmount).toBe(order.subtotal);
     expect(order.shippingAddress.fullName).toBe(SHIPPING.fullName);
     expect(order.shippingAddress.phone).toBe(SHIPPING.phone);
 
@@ -132,46 +214,239 @@ describe("POST /api/v1/orders (create order from Checkout)", () => {
     expect(stockAfter).toBe(stockBefore - 2);
   });
 
-  it("creates a UPI Paid order and auto-sets orderStatus = Confirmed", async () => {
+  it("rejects a client request that tries to mark an unpaid order as Paid", async () => {
     const cust = await loginCustomer();
     const stockBefore = (await Product.findById(testProduct._id)).stock;
     const payload = {
       shippingAddress: SHIPPING,
-      paymentMethod: "UPI",
-      paymentReference: "TVXTESTUPI123",
+      paymentMethod: "Razorpay",
+      paymentReference: "TVXTESTRAZOR123",
       paymentStatus: "Paid",
       items: [makeItem({ quantity: 1 })],
     };
 
     const res = await cust.post("/api/v1/orders").send(payload);
 
-    expect(res.statusCode).toBe(201);
-    const order = res.body.data;
-    expect(order.orderStatus).toBe("Confirmed");
-    expect(order.payment.provider).toBe("UPI");
-    expect(order.payment.status).toBe("Paid");
-    expect(order.payment.reference).toBe("TVXTESTUPI123");
+    expect(res.statusCode).toBe(400);
 
     const stockAfter = (await Product.findById(testProduct._id)).stock;
-    expect(stockAfter).toBe(stockBefore - 1);
+    expect(stockAfter).toBe(stockBefore);
   });
 
   it("rejects order with invalid address (missing required fields) with 400", async () => {
     const cust = await loginCustomer();
     const payload = {
       shippingAddress: { fullName: "X", phone: "Y" },
-      paymentMethod: "COD",
+      paymentMethod: "Razorpay",
       items: [makeItem()],
     };
     const res = await cust.post("/api/v1/orders").send(payload);
     expect(res.statusCode).toBe(400);
   });
 
+  describe("Razorpay checkout and payment verification", () => {
+    it("creates a gateway order in paise using the server product price", async () => {
+      const customer = await loginCustomer();
+      const item = makeItem({ quantity: 1, unitPrice: 1 });
+      const gatewayOrder = await createRazorpayOrder(customer, [item]);
+
+      expect(global.__razorpayTestState.createOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: testProduct.discountPrice * 100,
+          currency: "INR",
+          notes: expect.objectContaining({ userId: expect.any(String) }),
+        }),
+      );
+      expect(gatewayOrder.amountPaise).toBe(testProduct.discountPrice * 100);
+      expect(gatewayOrder.amount).toBe(testProduct.discountPrice);
+      expect(gatewayOrder.isTestMode).toBe(true);
+    });
+
+    it("sends exactly 100 paise to Razorpay for a one-rupee product", async () => {
+      const customer = await loginCustomer();
+      const originalDiscountPrice = testProduct.discountPrice;
+      await Product.findByIdAndUpdate(testProduct._id, { discountPrice: 1 });
+
+      try {
+        const gatewayOrder = await createRazorpayOrder(customer, [
+          makeItem({ quantity: 1, unitPrice: 200.05 }),
+        ]);
+        expect(global.__razorpayTestState.createOrder).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: 100 }),
+        );
+        expect(gatewayOrder.amountPaise).toBe(100);
+        expect(gatewayOrder.amount).toBe(1);
+      } finally {
+        await Product.findByIdAndUpdate(testProduct._id, {
+          discountPrice: originalDiscountPrice,
+        });
+      }
+    });
+
+    it("returns a safe retry message if Razorpay order creation fails", async () => {
+      const customer = await loginCustomer();
+      const gatewayFailure = new Error("private gateway detail");
+      gatewayFailure.code = "ETIMEDOUT";
+      global.__razorpayTestState.createOrder.mockRejectedValueOnce(gatewayFailure);
+      const log = jest.spyOn(console, "error").mockImplementation(() => {});
+
+      const response = await customer
+        .post("/api/v1/orders/razorpay/create-order")
+        .send({ shippingAddress: SHIPPING, items: [makeItem()] })
+        .expect(502);
+
+      expect(response.body.error.message).toMatch(/temporarily unavailable/i);
+      expect(JSON.stringify(response.body)).not.toContain("private gateway detail");
+      expect(log).toHaveBeenCalledWith(
+        "[payments] Razorpay request failed",
+        expect.objectContaining({ stage: "create_order", code: "ETIMEDOUT" }),
+      );
+      log.mockRestore();
+    });
+
+    it("requires authentication before creating a Razorpay order", async () => {
+      await agent()
+        .post("/api/v1/orders/razorpay/create-order")
+        .send({ shippingAddress: SHIPPING, items: [makeItem()] })
+        .expect(401);
+    });
+
+    it("requires authentication before verifying a payment", async () => {
+      await agent()
+        .post("/api/v1/orders/razorpay/verify")
+        .send({
+          shippingAddress: SHIPPING,
+          items: [makeItem()],
+          razorpay_order_id: "order_test",
+          razorpay_payment_id: "pay_test",
+          razorpay_signature: "0".repeat(64),
+        })
+        .expect(401);
+    });
+
+    it("rejects invalid checkout order requests", async () => {
+      const customer = await loginCustomer();
+      await customer
+        .post("/api/v1/orders/razorpay/create-order")
+        .send({ shippingAddress: SHIPPING, items: [] })
+        .expect(400);
+    });
+
+    it("creates a confirmed order only for a captured payment and safely handles concurrent retries", async () => {
+      const customer = await loginCustomer();
+      const stockBefore = (await Product.findById(testProduct._id)).stock;
+      const gatewayOrder = await createRazorpayOrder(customer, [
+        makeItem({ quantity: 1, unitPrice: 1 }),
+      ]);
+
+      const first = await verifyCapturedPayment(customer, gatewayOrder);
+      expect(first.status).toBe(201);
+      expect(first.body.data.payment.status).toBe("Paid");
+      expect(first.body.data.orderStatus).toBe("Confirmed");
+      expect(first.body.data.totalAmount).toBe(testProduct.discountPrice);
+
+      const retries = await Promise.all([
+        verifyCapturedPayment(customer, gatewayOrder),
+        verifyCapturedPayment(customer, gatewayOrder),
+      ]);
+      expect(retries.map((retry) => retry.status).sort()).toEqual([200, 200]);
+      expect(retries[0].body.data._id).toBe(first.body.data._id);
+      expect(retries[1].body.data._id).toBe(first.body.data._id);
+      expect(
+        await Order.countDocuments({
+          "payment.razorpayPaymentId": "pay_test_success",
+        }),
+      ).toBe(1);
+      expect((await Product.findById(testProduct._id)).stock).toBe(stockBefore - 1);
+    });
+
+    it("returns a safe message when fetching the gateway payment fails", async () => {
+      const customer = await loginCustomer();
+      const gatewayOrder = await createRazorpayOrder(customer);
+      const gatewayFailure = new Error("private payment response");
+      gatewayFailure.code = "ETIMEDOUT";
+      global.__razorpayTestState.fetchPayment.mockRejectedValueOnce(gatewayFailure);
+      const log = jest.spyOn(console, "error").mockImplementation(() => {});
+
+      const response = await verifyCapturedPayment(customer, gatewayOrder, {
+        paymentId: "pay_test_network_error",
+      });
+
+      expect(response.status).toBe(502);
+      expect(response.body.error.message).toMatch(/temporarily unavailable/i);
+      expect(JSON.stringify(response.body)).not.toContain("private payment response");
+      expect(log).toHaveBeenCalledWith(
+        "[payments] Razorpay request failed",
+        expect.objectContaining({ stage: "fetch_payment", code: "ETIMEDOUT" }),
+      );
+      log.mockRestore();
+    });
+
+    it("does not create an order for an invalid payment signature", async () => {
+      const customer = await loginCustomer();
+      const gatewayOrder = await createRazorpayOrder(customer);
+      const stockBefore = (await Product.findById(testProduct._id)).stock;
+      const ordersBefore = await Order.countDocuments();
+
+      await customer
+        .post("/api/v1/orders/razorpay/verify")
+        .send({
+          shippingAddress: SHIPPING,
+          items: [makeItem()],
+          razorpay_order_id: gatewayOrder.orderId,
+          razorpay_payment_id: "pay_test_bad_signature",
+          razorpay_signature: "0".repeat(64),
+        })
+        .expect(400);
+
+      expect(global.__razorpayTestState.fetchPayment).not.toHaveBeenCalled();
+      expect(await Order.countDocuments()).toBe(ordersBefore);
+      expect((await Product.findById(testProduct._id)).stock).toBe(stockBefore);
+    });
+
+    it.each([
+      ["failed", 400, /declined/i],
+      ["authorized", 409, /still processing/i],
+    ])("does not mark a %s payment as successful", async (status, code, message) => {
+      const customer = await loginCustomer();
+      const gatewayOrder = await createRazorpayOrder(customer);
+      const stockBefore = (await Product.findById(testProduct._id)).stock;
+      const ordersBefore = await Order.countDocuments();
+
+      const response = await verifyCapturedPayment(customer, gatewayOrder, {
+        paymentId: `pay_test_${status}`,
+        status,
+      });
+
+      expect(response.status).toBe(code);
+      expect(response.body.error.message).toMatch(message);
+      expect(await Order.countDocuments()).toBe(ordersBefore);
+      expect((await Product.findById(testProduct._id)).stock).toBe(stockBefore);
+    });
+
+    it("rejects a captured payment whose amount differs from the product total", async () => {
+      const customer = await loginCustomer();
+      const gatewayOrder = await createRazorpayOrder(customer);
+      const stockBefore = (await Product.findById(testProduct._id)).stock;
+      const ordersBefore = await Order.countDocuments();
+
+      const response = await verifyCapturedPayment(customer, gatewayOrder, {
+        paymentId: "pay_test_wrong_amount",
+        amount: 100,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toMatch(/do not match/i);
+      expect(await Order.countDocuments()).toBe(ordersBefore);
+      expect((await Product.findById(testProduct._id)).stock).toBe(stockBefore);
+    });
+  });
+
   it("rejects order with out-of-stock quantity with 400", async () => {
     const cust = await loginCustomer();
     const payload = {
       shippingAddress: SHIPPING,
-      paymentMethod: "COD",
+      paymentMethod: "Razorpay",
       items: [makeItem({ quantity: 99999 })],
     };
     const res = await cust.post("/api/v1/orders").send(payload);
@@ -184,7 +459,7 @@ describe("POST /api/v1/orders (create order from Checkout)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem()],
       });
     expect(res.statusCode).toBe(401);
@@ -198,7 +473,7 @@ describe("GET /api/v1/orders (customer My Orders)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: 1 })],
       })
       .expect(201);
@@ -238,7 +513,7 @@ describe("GET /api/v1/orders (customer My Orders)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: { ...SHIPPING, fullName: "USER A ONLY" },
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: 1 })],
       })
       .expect(201);
@@ -259,8 +534,7 @@ describe("GET /api/v1/orders/:id (Order Detail)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "UPI",
-        paymentStatus: "Paid",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: 1 })],
       })
       .expect(201);
@@ -278,7 +552,7 @@ describe("GET /api/v1/orders/:id (Order Detail)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: 1 })],
       })
       .expect(201);
@@ -311,7 +585,7 @@ describe("POST /api/v1/orders/:id/cancel (customer cancel)", () => {
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: qty })],
       })
       .expect(201);
@@ -338,7 +612,7 @@ describe("GET /api/admin/orders (admin orders list - fixes 404 from screenshots)
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [makeItem({ quantity: 1 })],
       })
       .expect(201);
@@ -375,15 +649,13 @@ describe("GET /api/admin/orders (admin orders list - fixes 404 from screenshots)
   it("filters by order status query param", async () => {
     const adm = await loginAdmin();
     const cust = await loginCustomer();
-    await cust
-      .post("/api/v1/orders")
-      .send({
-        shippingAddress: SHIPPING,
-        paymentMethod: "UPI",
-        paymentStatus: "Paid",
-        items: [makeItem({ quantity: 1 })],
-      })
-      .expect(201);
+    const gatewayOrder = await createRazorpayOrder(cust, [
+      makeItem({ quantity: 1 }),
+    ]);
+    const createdOrder = await verifyCapturedPayment(cust, gatewayOrder, {
+      paymentId: "pay_test_admin_filter",
+    });
+    expect(createdOrder.status).toBe(201);
 
     const res = await adm.get(
       "/api/admin/orders?page=1&limit=25&status=Confirmed",
@@ -399,23 +671,20 @@ describe("GET /api/admin/orders/:id (admin order detail)", () => {
   it("loads full order detail including user snapshot as admin", async () => {
     const adm = await loginAdmin();
     const cust = await loginCustomer();
-    const created = await cust
-      .post("/api/v1/orders")
-      .send({
-        shippingAddress: SHIPPING,
-        paymentMethod: "UPI",
-        paymentReference: "TVXADMIN123",
-        paymentStatus: "Paid",
-        items: [makeItem({ quantity: 2 })],
-      })
-      .expect(201);
+    const gatewayOrder = await createRazorpayOrder(cust, [
+      makeItem({ quantity: 2 }),
+    ]);
+    const created = await verifyCapturedPayment(cust, gatewayOrder, {
+      paymentId: "pay_test_admin_details",
+    });
+    expect(created.status).toBe(201);
 
     const res = await adm.get(`/api/admin/orders/${created.body.data._id}`);
     expect(res.statusCode).toBe(200);
     const o = res.body.data;
     expect(o._id).toBe(created.body.data._id);
     expect(o.orderStatus).toBe("Confirmed");
-    expect(o.payment.reference).toBe("TVXADMIN123");
+    expect(o.payment.reference).toBe("pay_test_admin_details");
     expect(o.user.email).toBe(CUSTOMER.email);
     expect(o.items.length).toBe(1);
     expect(o.shippingAddress.postalCode).toBe(SHIPPING.postalCode);

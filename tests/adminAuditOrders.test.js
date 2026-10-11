@@ -1,6 +1,7 @@
 const request = require("supertest");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Order = require("../models/Order");
 const Category = require("../models/Category");
 const AdminAuditLog = require("../models/AdminAuditLog");
 const { makeTestApp, teardown } = require("./helpers/testApp");
@@ -40,7 +41,14 @@ beforeAll(async () => {
     category: testCategory._id,
     stock: 50,
     isActive: true,
-    images: [{ publicId: "audit/lamp-v1", url: "https://cdn.test/lamp.jpg", alt: "Lamp", isPrimary: true }],
+    images: [
+      {
+        publicId: "audit/lamp-v1",
+        url: "https://cdn.test/lamp.jpg",
+        alt: "Lamp",
+        isPrimary: true,
+      },
+    ],
     weightG: 300,
   });
 });
@@ -89,7 +97,7 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [
           {
             product: String(testProduct._id),
@@ -137,7 +145,7 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "COD",
+        paymentMethod: "Razorpay",
         items: [
           {
             product: String(testProduct._id),
@@ -153,10 +161,10 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
     const res = await adm
       .put(`/api/admin/orders/${created.body.data._id}/payment`)
       .set("X-Requested-With", "XMLHttpRequest")
-      .send({ paymentStatus: "Paid", reference: "CASH-ON-DELIVERY-PAID" });
+      .send({ paymentStatus: "Failed", reference: "RAZORPAY-DECLINED" });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.payment.status).toBe("Paid");
+    expect(res.body.data.payment.status).toBe("Failed");
 
     const auditEntry = await AdminAuditLog.findOne({
       entityType: "order",
@@ -165,7 +173,36 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
     }).sort({ createdAt: -1 });
 
     expect(auditEntry).not.toBeNull();
-    expect(auditEntry.afterSnapshot.reference).toBe("CASH-ON-DELIVERY-PAID");
+    expect(auditEntry.afterSnapshot.reference).toBe("RAZORPAY-DECLINED");
+  });
+
+  it("does not allow an admin to mark an unverified payment as Paid", async () => {
+    const cust = await loginCustomer();
+    const adm = await loginAdmin();
+    const created = await cust
+      .post("/api/v1/orders")
+      .send({
+        shippingAddress: SHIPPING,
+        paymentMethod: "Razorpay",
+        items: [
+          {
+            product: String(testProduct._id),
+            name: testProduct.name,
+            quantity: 1,
+            unitPrice: testProduct.price,
+            productMeta: { slug: testProduct.slug },
+          },
+        ],
+      })
+      .expect(201);
+
+    const response = await adm
+      .put(`/api/admin/orders/${created.body.data._id}/payment`)
+      .set("X-Requested-With", "XMLHttpRequest")
+      .send({ paymentStatus: "Paid", reference: "FAKE-PAID" });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.error.message).toMatch(/Razorpay verification/i);
   });
 
   it("writes an audit log for PUT /api/admin/orders/:id/refund (order.refunded) and restocks", async () => {
@@ -178,9 +215,7 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
       .post("/api/v1/orders")
       .send({
         shippingAddress: SHIPPING,
-        paymentMethod: "UPI",
-        paymentReference: "UPI-REFUND-TEST",
-        paymentStatus: "Paid",
+        paymentMethod: "Razorpay",
         items: [
           {
             product: String(testProduct._id),
@@ -192,6 +227,13 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
         ],
       })
       .expect(201);
+    await Order.findByIdAndUpdate(created.body.data._id, {
+      $set: {
+        "payment.status": "Paid",
+        "payment.reference": "RAZORPAY-REFUND-TEST",
+        orderStatus: "Confirmed",
+      },
+    });
 
     const stockAfterCreate = (await Product.findById(testProduct._id)).stock;
     expect(stockAfterCreate).toBe(stockBefore - qty);

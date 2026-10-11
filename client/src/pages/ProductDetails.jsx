@@ -433,7 +433,7 @@ export default function ProductDetails() {
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             <div className="card flex items-center gap-3 p-4 text-sm text-ink-300">
               <Truck size={18} className="shrink-0 text-brand-300" />
-              Shipping options at checkout
+              Free shipping — no extra charges
             </div>
             <div className="card flex items-center gap-3 p-4 text-sm text-ink-300">
               <PackageCheck size={18} className="shrink-0 text-brand-300" />

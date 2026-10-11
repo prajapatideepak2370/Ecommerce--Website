@@ -142,25 +142,21 @@ export default function Cart() {
             <dl className="text-sm space-y-2">
               <div className="flex justify-between">
                 <dt className="text-ink-400">Subtotal</dt>
-                <dd>₹{subtotal.toLocaleString("en-IN")}</dd>
+                <dd>₹{subtotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-400">Tax (18%)</dt>
-                <dd>₹{tax.toLocaleString("en-IN")}</dd>
+                <dt className="text-ink-400">Tax / GST</dt>
+                <dd>₹{tax.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-400">Shipping</dt>
-                <dd className={shippingFee === 0 ? "text-emerald-300" : ""}>
-                  {shippingFee === 0
-                    ? "Free"
-                    : `₹${shippingFee.toLocaleString("en-IN")}`}
-                </dd>
+                <dd>₹{shippingFee.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</dd>
               </div>
             </dl>
             <div className="h-px bg-ink-800 my-4" />
             <div className="flex justify-between mb-4 font-semibold text-lg">
               <span>Total</span>
-              <span>₹{totalAmount.toLocaleString("en-IN")}</span>
+              <span>₹{totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
             </div>
             <button
               onClick={() => navigate("/checkout")}

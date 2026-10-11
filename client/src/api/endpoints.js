@@ -36,4 +36,8 @@ export const orderApi = {
   mine: () => api.get("/orders").then(unwrap),
   byId: (id) => api.get(`/orders/${id}`).then(unwrap),
   cancel: (id) => api.post(`/orders/${id}/cancel`).then(unwrap),
+  createRazorpayOrder: (payload) =>
+    api.post("/orders/razorpay/create-order", payload).then(unwrap),
+  verifyRazorpayPayment: (payload) =>
+    api.post("/orders/razorpay/verify", payload).then(unwrap),
 };

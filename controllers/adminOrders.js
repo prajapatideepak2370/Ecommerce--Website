@@ -236,6 +236,15 @@ const updatePayment = catchAsync(async (req, res) => {
     reference: order.payment.reference,
   };
   const { paymentStatus, provider, reference } = req.body;
+  if (paymentStatus && !PAYMENT_STATUSES.includes(paymentStatus)) {
+    throw new ExpressError(400, "Invalid payment status.");
+  }
+  if (paymentStatus === "Paid" && order.payment.status !== "Paid") {
+    throw new ExpressError(
+      400,
+      "A payment can only be marked paid after Razorpay verification.",
+    );
+  }
   if (paymentStatus && PAYMENT_STATUSES.includes(paymentStatus)) {
     order.payment.status = paymentStatus;
   }

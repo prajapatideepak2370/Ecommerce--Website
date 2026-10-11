@@ -118,7 +118,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
       setOrder(data);
       setOrderStatus(data.orderStatus || "Pending");
       setPaymentStatus(data.payment?.status || "Pending");
-      setPaymentProvider(data.payment?.provider || "COD");
+      setPaymentProvider(data.payment?.provider || "Razorpay");
       setPaymentReference(data.payment?.reference || "");
     } catch (e) {
       setErr(getErrorMessage(e, "Could not load this order."));
@@ -318,7 +318,11 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
               label="Payment status"
               value={paymentStatus}
               onChange={setPaymentStatus}
-              options={PAYMENT_STATUSES}
+              options={
+                paymentStatus === "Paid"
+                  ? PAYMENT_STATUSES
+                  : PAYMENT_STATUSES.filter((status) => status !== "Paid")
+              }
               disabled={saving}
             />
             <Select
@@ -334,7 +338,7 @@ export default function AdminOrderDetails({ orderId, onClose, onUpdated }) {
                 value={paymentReference}
                 onChange={(e) => setPaymentReference(e.target.value)}
                 disabled={saving}
-                placeholder="Razorpay, COD slip…"
+                placeholder="Razorpay payment ID…"
                 className="mt-1 w-full rounded-lg border border-ink-700 bg-ink-900 px-3 py-2.5 text-sm text-ink-100 placeholder:text-ink-500 focus:border-brand-500 focus:outline-none disabled:opacity-50"
               />
             </label>

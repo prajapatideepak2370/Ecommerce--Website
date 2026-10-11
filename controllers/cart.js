@@ -25,16 +25,15 @@ const getCartSummary = (cartDoc) => {
   });
 
   const subtotal = items.reduce((sum, item) => sum + (item.lineTotal || 0), 0);
-  const tax = Number((subtotal * (Number(process.env.TAX_PERCENT) || 0) / 100).toFixed(2));
-  const freeShippingThreshold = Number(process.env.FREE_SHIPPING_THRESHOLD) || Infinity;
-  const shippingFee = subtotal > 0 && subtotal >= freeShippingThreshold ? 0 : Number(process.env.SHIPPING_FEE || 0);
+  const tax = 0;
+  const shippingFee = 0;
 
   return {
     items,
     subtotal,
     tax,
     shippingFee,
-    totalAmount: +(subtotal + tax + shippingFee).toFixed(2),
+    totalAmount: subtotal,
   };
 };
 

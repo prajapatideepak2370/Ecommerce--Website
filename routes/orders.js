@@ -9,6 +9,18 @@ const { orderSchemas } = require("../schema");
 
 router.use(requireAuth);
 
+router.post(
+  "/razorpay/create-order",
+  validate(orderSchemas.razorpayCreate),
+  catchAsync(orderController.createRazorpayOrderController),
+);
+
+router.post(
+  "/razorpay/verify",
+  validate(orderSchemas.razorpayVerify),
+  catchAsync(orderController.verifyRazorpayPayment),
+);
+
 router
   .route("/")
   .get(
