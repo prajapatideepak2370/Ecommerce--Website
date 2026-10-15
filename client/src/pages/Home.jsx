@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Box, Layers, Phone } from "lucide-react";
+import { ArrowRight, Sparkles, Box, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { productApi } from "../api/endpoints.js";
 import { demoProducts } from "../data/demoProducts.js";
@@ -60,27 +60,27 @@ export default function Home() {
           aria-hidden
         />
         <div
-          className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_70%)] bg-grid-fade [background-size:36px_36px] pointer-events-none opacity-60"
+          className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_65%)] bg-grid-fade [background-size:40px_40px] pointer-events-none opacity-30"
           aria-hidden
         />
 
-        <div className="page-container pt-16 md:pt-28 pb-20 grid md:grid-cols-2 gap-10 items-center relative">
+        <div className="page-container pt-14 md:pt-20 pb-16 md:pb-20 grid md:grid-cols-2 gap-10 md:gap-16 items-center relative">
           <div>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="chip border-brand-500/30 bg-brand-500/10 text-brand-200"
+              className="chip border-brand-500/20 bg-brand-500/5 text-brand-700"
             >
-              <Sparkles size={14} className="text-brand-300" />
-              Introducing TRYVOXEL³ᴰ — built for experimentation
+              <Sparkles size={14} className="text-brand-600" />
+              Thoughtfully designed. Made to be experienced.
             </motion.span>
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="mt-5 font-display font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.05] tracking-tight"
+              className="mt-6 font-display font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight"
             >
               <span className="gradient-text">Experiment.</span>
               <br />
@@ -93,12 +93,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="mt-6 text-ink-300 max-w-xl text-base md:text-lg"
+              className="mt-6 text-ink-300 max-w-lg text-base md:text-lg leading-relaxed"
             >
-              A premium 3D-first marketplace for experimental physical and
-              digital goods. <span className="text-brand-300">See it</span>,{" "}
-              <span className="text-accent">spin it</span>, own it — before you
-              checkout.
+              Discover distinctive objects and thoughtful design, with a
+              closer look at what makes every piece special.
             </motion.p>
 
             <motion.div
@@ -115,38 +113,18 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mt-12 grid grid-cols-3 gap-6 max-w-md"
-            >
-              {[
-                { k: "20+", v: "Curated drops" },
-                { k: "4.9★", v: "Avg. rating" },
-                { k: "3D", v: "View in room" },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div className="font-display text-2xl md:text-3xl font-semibold text-white">
-                    {s.k}
-                  </div>
-                  <div className="text-xs text-ink-400 mt-1">{s.v}</div>
-                </div>
-              ))}
-            </motion.div>
           </div>
 
-          {/* 3D hero placeholder — @react-three/fiber viewer lands in Phase 9 */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.5 }}
-            className="relative aspect-square max-w-lg mx-auto w-full"
+            className="relative aspect-square max-w-md mx-auto w-full"
           >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand-600/30 via-brand-400/10 to-accent/20 blur-3xl animate-float-slow" />
-            <div className="relative h-full rounded-3xl border border-ink-700 bg-gradient-to-br from-ink-900 via-ink-900 to-ink-950 shadow-card overflow-hidden grid place-items-center">
-              <div className="relative w-2/3 h-2/3 animate-float-slow [animation-duration:6s]">
-                <svg viewBox="0 0 200 200" className="w-full h-full">
+            <div className="absolute inset-8 rounded-full bg-brand-500/10 blur-3xl" />
+            <div className="relative h-full rounded-3xl border border-ink-700 bg-ink-900/70 shadow-card overflow-hidden grid place-items-center">
+              <div className="relative w-2/3 h-2/3">
+                <svg viewBox="0 0 200 200" className="w-full h-full text-ink-400">
                   <defs>
                     <linearGradient id="faceA" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#6355ff" />
@@ -161,49 +139,40 @@ export default function Home() {
                     points="100,10 180,60 180,140 100,190 20,140 20,60"
                     fill="url(#faceA)"
                     fillOpacity="0.25"
-                    stroke="#ffffff"
-                    strokeOpacity="0.6"
+                    stroke="currentColor"
+                    strokeOpacity="0.65"
                     strokeWidth="1.2"
                   />
                   <polygon
                     points="100,10 180,60 100,110 20,60"
                     fill="url(#faceB)"
                     fillOpacity="0.25"
-                    stroke="#ffffff"
-                    strokeOpacity="0.45"
+                    stroke="currentColor"
+                    strokeOpacity="0.55"
                   />
                   <polyline
                     points="100,110 100,190"
-                    stroke="#ffffff"
-                    strokeOpacity="0.5"
+                    stroke="currentColor"
+                    strokeOpacity="0.6"
                   />
                   <polyline
                     points="20,60 20,140"
-                    stroke="#ffffff"
-                    strokeOpacity="0.4"
+                    stroke="currentColor"
+                    strokeOpacity="0.5"
                   />
                   <polyline
                     points="180,60 180,140"
-                    stroke="#ffffff"
-                    strokeOpacity="0.4"
+                    stroke="currentColor"
+                    strokeOpacity="0.5"
                   />
                   <polyline
                     points="20,60 100,110 180,60"
-                    stroke="#ffffff"
+                    stroke="currentColor"
                     strokeOpacity="0.35"
                     fill="none"
                   />
                   <circle cx="100" cy="100" r="3" fill="#00f5d4" />
                 </svg>
-              </div>
-              <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-ink-300">
-                  <Box size={14} className="text-brand-300" />
-                  Interactive 3D viewer · Phase 9
-                </div>
-                <div className="flex items-center gap-2 text-ink-400">
-                  <Layers size={14} /> 6 faces · 12 edges
-                </div>
               </div>
             </div>
           </motion.div>
@@ -303,47 +272,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* OUR MISSION */}
-      <section className="page-container py-16">
-        <div className="card p-8 md:p-12 relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
-          <div className="relative grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <div className="chip mb-4">Our Mission</div>
-              <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight">
-                Make commerce
-                <br />
-                <span className="gradient-text">feel alive.</span>
-              </h3>
-              <p className="text-ink-300 mt-4 max-w-lg leading-relaxed">
-                We create immersive shopping experiences that help people
-                connect with the value, story, and craft behind every product —
-                before they ever reach checkout.
-              </p>
-              <Link to="/about" className="btn-outline mt-6">
-                Explore our vision <ArrowRight size={16} />
-              </Link>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: "Immersive", value: "3D" },
-                { label: "Intentional", value: "Design" },
-                { label: "Meaningful", value: "Trust" },
-              ].map((item) => (
-                <div key={item.label} className="text-center">
-                  <div className="aspect-square rounded-2xl bg-gradient-to-br from-brand-600/40 to-accent/30 border border-ink-700 mb-3 grid place-items-center">
-                    <span className="font-display text-xl font-semibold">
-                      {item.value}
-                    </span>
-                  </div>
-                  <div className="font-medium">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

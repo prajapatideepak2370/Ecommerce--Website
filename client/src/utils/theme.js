@@ -3,7 +3,7 @@ const THEME_MODES = ["system", "light", "dark"];
 
 export function getThemeMode() {
   const savedMode = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return THEME_MODES.includes(savedMode) ? savedMode : "system";
+  return THEME_MODES.includes(savedMode) ? savedMode : "light";
 }
 
 export function applyTheme(mode) {
@@ -12,6 +12,9 @@ export function applyTheme(mode) {
     mode === "system" ? (prefersLight ? "light" : "dark") : mode;
 
   document.documentElement.dataset.theme = resolvedTheme;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", resolvedTheme === "light" ? "#fcfcfe" : "#090a0f");
   return resolvedTheme;
 }
 
@@ -20,11 +23,7 @@ export function setThemeMode(mode) {
     throw new Error(`Unsupported theme mode: ${mode}`);
   }
 
-  if (mode === "system") {
-    window.localStorage.removeItem(THEME_STORAGE_KEY);
-  } else {
-    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
-  }
+  window.localStorage.setItem(THEME_STORAGE_KEY, mode);
   applyTheme(mode);
 }
 

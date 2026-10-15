@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Instagram, Twitter, Youtube } from "lucide-react";
+import { Instagram, Youtube } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -26,12 +26,25 @@ export default function Footer() {
             products you'll want to live inside.
           </p>
           <div className="flex items-center gap-2 mt-4">
-            {[Instagram, Twitter, Youtube].map((Icon, i) => (
+            {[
+              {
+                Icon: Instagram,
+                label: "Instagram",
+                href: "https://www.instagram.com/tryvoxel.3d/",
+              },
+              {
+                Icon: Youtube,
+                label: "YouTube",
+                href: "https://youtube.com/@tryvoxel.3d?si=UD2vwEBrd5gW4lOp",
+              },
+            ].map(({ Icon, label, href }) => (
               <a
-                key={i}
-                href="#"
-                aria-label="social"
-                className="h-9 w-9 grid place-items-center rounded-lg border border-ink-800 text-ink-300 hover:text-white hover:bg-ink-800"
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Visit TRYVOXEL on ${label}`}
+                className="h-9 w-9 grid place-items-center rounded-lg border border-ink-800 text-ink-300 hover:text-ink-50 hover:bg-ink-800"
               >
                 <Icon size={16} />
               </a>

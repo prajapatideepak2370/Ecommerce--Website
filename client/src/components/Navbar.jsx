@@ -87,7 +87,7 @@ export default function Navbar() {
             <span className="font-display text-lg font-semibold tracking-tight gradient-text">
               TRYVOXEL³ᴰ
             </span>
-            <span className="text-[10px] uppercase tracking-[0.22em] text-ink-400">
+            <span className="hidden sm:block text-[10px] uppercase tracking-[0.22em] text-ink-400">
               Experiment • Create • Experience
             </span>
           </div>
@@ -103,7 +103,7 @@ export default function Navbar() {
                   "px-3 py-2 text-sm rounded-md transition-colors",
                   isActive
                     ? "text-brand-300 bg-brand-500/10"
-                    : "text-ink-200 hover:text-white hover:bg-ink-800/50",
+                    : "text-ink-200 hover:text-ink-50 hover:bg-ink-800/50",
                 )
               }
             >
@@ -116,7 +116,7 @@ export default function Navbar() {
 
         <button
           aria-label="Search"
-          className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-white hover:bg-ink-800/50"
+          className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50"
           onClick={() => navigate("/shop")}
         >
           <Search size={18} />
@@ -134,7 +134,7 @@ export default function Navbar() {
         <Link
           to="/cart"
           aria-label="Cart"
-          className="relative h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-white hover:bg-ink-800/50"
+          className="relative h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50"
         >
           <ShoppingBag size={18} />
           {cartCount > 0 && (
@@ -151,7 +151,7 @@ export default function Navbar() {
               e.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-white hover:bg-ink-800/50 border border-ink-800"
+            className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50 border border-ink-800"
           >
             <User size={18} />
           </button>
