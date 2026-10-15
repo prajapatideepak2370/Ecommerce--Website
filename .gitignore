@@ -1,6 +1,7 @@
 # --- Dependencies ---
 node_modules/
-client/node_modules/
+backend/node_modules/
+frontend/node_modules/
 
 # --- Environment ---
 .env
@@ -11,7 +12,7 @@ client/node_modules/
 
 # --- Build outputs ---
 dist/
-client/dist/
+frontend/dist/
 build/
 coverage/
 

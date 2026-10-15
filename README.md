@@ -10,26 +10,26 @@ The platform is designed to support both **physical products and digital 3D asse
 
 ## ✨ Highlights
 
-* 🛍️ Full e-commerce storefront architecture
-* 🎨 3D product support with **GLB / GLTF**
-* ⚛️ React 18 frontend with Vite
-* 🧩 React Three Fiber + Three.js integration
-* 🟢 Node.js + Express REST API
-* 🍃 MongoDB + Mongoose database
-* 🔐 Passport.js authentication with persistent sessions
-* 🛒 Authenticated shopping cart
-* ⭐ Product reviews and ratings
-* 🔎 Product search, filtering, sorting, and pagination
-* 🗂️ Category management
-* ☁️ Cloudinary image and 3D asset storage
-* 🛡️ Helmet, CORS, rate limiting, input validation, and Mongo sanitization
-* 📦 Inventory and stock-management foundations
-* 👤 Customer accounts and saved addresses
-* 🧑‍💼 Admin dashboard architecture
-* 📱 Responsive, component-based frontend
-* 🎞️ Framer Motion page transitions
-* 🔔 Toast notifications and loading states
-* 🧪 Jest + Supertest testing setup
+- 🛍️ Full e-commerce storefront architecture
+- 🎨 3D product support with **GLB / GLTF**
+- ⚛️ React 18 frontend with Vite
+- 🧩 React Three Fiber + Three.js integration
+- 🟢 Node.js + Express REST API
+- 🍃 MongoDB + Mongoose database
+- 🔐 Passport.js authentication with persistent sessions
+- 🛒 Authenticated shopping cart
+- ⭐ Product reviews and ratings
+- 🔎 Product search, filtering, sorting, and pagination
+- 🗂️ Category management
+- ☁️ Cloudinary image and 3D asset storage
+- 🛡️ Helmet, CORS, rate limiting, input validation, and Mongo sanitization
+- 📦 Inventory and stock-management foundations
+- 👤 Customer accounts and saved addresses
+- 🧑‍💼 Admin dashboard architecture
+- 📱 Responsive, component-based frontend
+- 🎞️ Framer Motion page transitions
+- 🔔 Toast notifications and loading states
+- 🧪 Jest + Supertest testing setup
 
 ---
 
@@ -39,16 +39,16 @@ TRYVOXEL³ is built as more than a basic product listing website.
 
 The project focuses on creating an **experimental digital commerce experience** where products can contain:
 
-* Multiple product images
-* 3D models
-* Product specifications
-* Material information
-* Dimensions
-* Color options
-* Brands
-* Stock information
-* Ratings and review counts
-* Featured-product status
+- Multiple product images
+- 3D models
+- Product specifications
+- Material information
+- Dimensions
+- Color options
+- Brands
+- Stock information
+- Ratings and review counts
+- Featured-product status
 
 The backend also provides structured APIs for users, products, categories, carts, orders, reviews, and administrative operations.
 
@@ -140,78 +140,55 @@ TRYVOXEL³
 
 The backend follows a modular structure separating routes, controllers, models, middleware, seeders, tests, and utilities.
 
+The Express API and Vite client are independent applications. Express serves
+JSON APIs only; Vite serves/builds the React storefront and admin UI. The
+backend lives in `backend/` and the frontend in `frontend/`; each has its own
+package manifest and can be started, tested, or deployed separately. The
+frontend uses `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to reach the backend.
+
 ---
 
 # 📁 Project Structure
 
 ```text
-TRYVOXEL---Ecommerce/
+TRYVOXEL/
 │
-├── Assets/
-│
-├── client/
-│   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── layouts/
-│   │   ├── pages/
-│   │   │   ├── account/
-│   │   │   └── admin/
-│   │   ├── routes/
-│   │   ├── store/
-│   │   └── ...
+├── backend/                      # Express REST API (independent app)
+│   ├── controllers/              # request handlers (customer + admin)
+│   ├── models/                   # Mongoose schemas
+│   ├── routes/                   # /api/v1 + /api/admin route definitions
+│   ├── middleware/               # auth, validation, error handling, sanitize
+│   ├── utils/                    # cloudinary, razorpay, email, helpers
+│   ├── seeders/                  # database seed scripts
+│   ├── scripts/                  # create-admin / seed-admin
+│   ├── tests/                    # Jest + Supertest suites
+│   ├── schema.js                 # Joi validation schemas (validators)
+│   ├── app.js                    # Express app factory (middleware + routes)
+│   ├── server.js                 # DB connection + HTTP listener
+│   ├── .env.example
 │   ├── package.json
-│   └── ...
+│   └── README.md
 │
-├── controllers/
-│   ├── admin.js
-│   ├── cart.js
-│   ├── category.js
-│   ├── order.js
-│   ├── product.js
-│   ├── review.js
-│   └── user.js
+├── frontend/                     # React + Vite SPA (independent app)
+│   ├── src/
+│   │   ├── api/                  # centralized Axios API client
+│   │   ├── components/           # reusable UI components
+│   │   ├── layouts/              # page layouts
+│   │   ├── pages/                # storefront + account pages
+│   │   ├── admin/                # separate admin console SPA
+│   │   ├── routes/               # client-side routing + guards
+│   │   ├── store/                # Redux Toolkit slices
+│   │   └── ...
+│   ├── public/
+│   ├── index.html                # storefront entry
+│   ├── admin.html                # admin console entry
+│   ├── .env.example
+│   ├── package.json
+│   └── README.md
 │
-├── middleware/
-│   ├── admin.js
-│   ├── auth.js
-│   ├── errorHandler.js
-│   ├── mongoSanitize.js
-│   └── validate.js
-│
-├── models/
-│   ├── Cart.js
-│   ├── Category.js
-│   ├── Order.js
-│   ├── Product.js
-│   ├── Review.js
-│   └── User.js
-│
-├── routes/
-│   ├── admin.js
-│   ├── cart.js
-│   ├── categories.js
-│   ├── orders.js
-│   ├── products.js
-│   ├── reviews.js
-│   └── users.js
-│
-├── seeders/
-│   └── seed.js
-│
-├── tests/
-│
-├── utils/
-│   ├── cloudinary.js
-│   ├── helpers.js
-│   └── ...
-│
-├── .env.example
-├── app.js
-├── schema.js
-├── server.js
-├── package.json
-└── package-lock.json
+├── Assets/                       # design source assets
+├── .gitignore
+└── README.md
 ```
 
 ---
@@ -222,24 +199,24 @@ TRYVOXEL---Ecommerce/
 
 TRYVOXEL provides a product catalog with:
 
-* Product name
-* Description
-* Price
-* Discount price
-* Category
-* Brand
-* SKU
-* Product images
-* 3D model
-* Stock
-* Specifications
-* Color options
-* Dimensions
-* Material
-* Rating
-* Review count
-* Featured status
-* Active/inactive status
+- Product name
+- Description
+- Price
+- Discount price
+- Category
+- Brand
+- SKU
+- Product images
+- 3D model
+- Stock
+- Specifications
+- Color options
+- Dimensions
+- Material
+- Rating
+- Review count
+- Featured status
+- Active/inactive status
 
 Products automatically receive URL-friendly slugs and generated SKUs when necessary.
 
@@ -249,15 +226,15 @@ Products automatically receive URL-friendly slugs and generated SKUs when necess
 
 The product API supports:
 
-* Keyword search
-* Category filtering
-* Brand filtering
-* Minimum/maximum price
-* Stock availability
-* Featured products
-* Minimum rating
-* Pagination
-* Sorting
+- Keyword search
+- Category filtering
+- Brand filtering
+- Minimum/maximum price
+- Stock availability
+- Featured products
+- Minimum rating
+- Pagination
+- Sorting
 
 Available sorting options include:
 
@@ -290,16 +267,16 @@ Products can store:
 
 Supported formats:
 
-* `.glb`
-* `.gltf`
+- `.glb`
+- `.gltf`
 
 The backend's Cloudinary configuration also provides dedicated storage for 3D assets.
 
 On the frontend, the project includes:
 
-* Three.js
-* React Three Fiber
-* Drei
+- Three.js
+- React Three Fiber
+- Drei
 
 for building interactive 3D experiences.
 
@@ -311,13 +288,13 @@ TRYVOXEL uses **Passport Local Strategy** with persistent sessions stored in Mon
 
 Users can:
 
-* Register
-* Login using username/email
-* Logout
-* View their profile
-* Update profile information
-* Manage saved addresses
-* Access their account area
+- Register
+- Login using username/email
+- Logout
+- View their profile
+- Update profile information
+- Manage saved addresses
+- Access their account area
 
 Authentication is protected by middleware, and blocked users are prevented from accessing authenticated functionality.
 
@@ -336,11 +313,11 @@ The frontend includes dedicated routes for:
 
 Authenticated users can:
 
-* View their cart
-* Add products
-* Change item quantities
-* Remove items
-* Clear the cart
+- View their cart
+- Add products
+- Change item quantities
+- Remove items
+- Clear the cart
 
 Each user has a unique cart document containing their selected products and quantities.
 
@@ -352,11 +329,11 @@ The project provides a review system associated with products.
 
 Users can:
 
-* Create reviews
-* Update reviews
-* Delete reviews
-* Give ratings from **1–5**
-* Add comments
+- Create reviews
+- Update reviews
+- Delete reviews
+- Give ratings from **1–5**
+- Add comments
 
 Administrative review moderation is also represented in the API architecture.
 
@@ -368,11 +345,11 @@ Products are organized using categories.
 
 Categories support:
 
-* Name
-* Description
-* Slug
-* Image
-* Active/inactive status
+- Name
+- Description
+- Slug
+- Image
+- Active/inactive status
 
 Administrators can create, update, delete, and upload category images.
 
@@ -384,18 +361,18 @@ The project contains the database schema and routing architecture for orders.
 
 An order can contain:
 
-* User
-* Product items
-* Quantity
-* Purchase price
-* Shipping address snapshot
-* Subtotal
-* Tax
-* Shipping fee
-* Total amount
-* Payment information
-* Order status
-* Status history
+- User
+- Product items
+- Quantity
+- Purchase price
+- Shipping address snapshot
+- Subtotal
+- Tax
+- Shipping fee
+- Total amount
+- Payment information
+- Order status
+- Status history
 
 Supported order states include:
 
@@ -445,21 +422,11 @@ The frontend already contains routes/pages for:
 /admin/payments
 ```
 
-The backend also exposes administrative routes for:
-
-* Dashboard
-* Users
-* User blocking/unblocking
-* Inventory
-* Payments
-* Reviews
-* Settings
-
-Admin middleware restricts these endpoints to authenticated users with the `admin` role.
-
-### Current implementation status
-
-The admin controller is currently scaffolded for a later development phase, with the methods returning `501 Not Implemented`.
+The active admin UI uses the separate, session-protected `/api/admin` API for
+catalog, category, inventory, and order management. Legacy `/api/v1/admin`
+routes for dashboard, users, payments, reviews, and settings remain mounted
+for compatibility; some of those legacy controller operations are still
+scaffolded and return `501 Not Implemented`.
 
 ---
 
@@ -530,10 +497,10 @@ MongoDB-oriented request sanitization middleware is included.
 
 Sessions use:
 
-* HTTP-only cookies
-* Secure cookies in production
-* SameSite configuration
-* MongoDB-backed session storage
+- HTTP-only cookies
+- Secure cookies in production
+- SameSite configuration
+- MongoDB-backed session storage
 
 ### Input Validation
 
@@ -572,10 +539,12 @@ Page transitions are handled using Framer Motion, while React Hot Toast provides
 
 # 🌐 API Structure
 
-The backend API is versioned under:
+The public customer API is versioned under `/api/v1`. The separate admin API
+uses `/api/admin`.
 
 ```text
-/api/v1
+Customer API: /api/v1
+Admin API:    /api/admin
 ```
 
 ### Health Check
@@ -592,6 +561,11 @@ POST   /api/v1/users/login
 POST   /api/v1/users/logout
 GET    /api/v1/users/me
 PUT    /api/v1/users/profile
+GET    /api/v1/users/auth/google
+GET    /api/v1/users/auth/google/callback
+POST   /api/v1/users/password/change
+POST   /api/v1/users/password/forgot
+POST   /api/v1/users/password/reset
 
 GET    /api/v1/users/addresses
 POST   /api/v1/users/addresses
@@ -603,14 +577,12 @@ DELETE /api/v1/users/addresses/:addressId
 
 ```text
 GET    /api/v1/products
-POST   /api/v1/products
-
 GET    /api/v1/products/:slug
-PUT    /api/v1/products/:slug
-DELETE /api/v1/products/:slug
-
-POST   /api/v1/products/:slug/images
-PATCH  /api/v1/products/:slug/stock
+POST   /api/v1/products                 (admin)
+PUT    /api/v1/products/:slug           (admin)
+DELETE /api/v1/products/:slug           (admin)
+POST   /api/v1/products/:slug/images    (admin)
+PATCH  /api/v1/products/:slug/stock     (admin)
 ```
 
 ### Categories
@@ -619,11 +591,10 @@ PATCH  /api/v1/products/:slug/stock
 GET    /api/v1/categories
 GET    /api/v1/categories/:slug
 
-POST   /api/v1/categories
-PUT    /api/v1/categories/:slug
-DELETE /api/v1/categories/:slug
-
-POST   /api/v1/categories/:slug/image
+POST   /api/v1/categories               (admin)
+PUT    /api/v1/categories/:slug         (admin)
+DELETE /api/v1/categories/:slug         (admin)
+POST   /api/v1/categories/:slug/image   (admin)
 ```
 
 ### Cart
@@ -654,32 +625,58 @@ GET    /api/v1/orders
 POST   /api/v1/orders
 GET    /api/v1/orders/:id
 POST   /api/v1/orders/:id/cancel
-PUT    /api/v1/orders/:id/status
-PUT    /api/v1/orders/:id/refund
+POST   /api/v1/orders/razorpay/create-order
+POST   /api/v1/orders/razorpay/verify
+PUT    /api/v1/orders/:id/status        (admin)
+PUT    /api/v1/orders/:id/refund        (admin)
 ```
 
-### Admin
+### Admin portal
 
 ```text
-GET    /api/v1/admin/dashboard
-GET    /api/v1/admin/users
-PATCH  /api/v1/admin/users/:userId/block
-
-GET    /api/v1/admin/inventory
-GET    /api/v1/admin/payments
-GET    /api/v1/admin/reviews
-
-GET    /api/v1/admin/settings
-PUT    /api/v1/admin/settings
+POST   /api/admin/auth/login
+POST   /api/admin/auth/logout
+GET    /api/admin/auth/me
+GET    /api/admin/products
+POST   /api/admin/products
+GET    /api/admin/products/:id
+PUT    /api/admin/products/:id
+PATCH  /api/admin/products/:id/status
+PATCH  /api/admin/products/:id/stock
+POST   /api/admin/products/bulk
+DELETE /api/admin/products/:id
+POST   /api/admin/products/:id/images
+PUT    /api/admin/products/:id/images
+DELETE /api/admin/products/:id/images/:publicId
+POST   /api/admin/products/:id/model3d
+DELETE /api/admin/products/:id/model3d
+GET    /api/admin/categories
+POST   /api/admin/categories
+GET    /api/admin/categories/:id
+PUT    /api/admin/categories/:id
+DELETE /api/admin/categories/:id
+POST   /api/admin/categories/:id/image
+DELETE /api/admin/categories/:id/image
+GET    /api/admin/catalog/summary
+GET    /api/admin/catalog/inventory
+PATCH  /api/admin/catalog/inventory/:id
+GET    /api/admin/catalog/inventory/:id/history
+GET    /api/admin/orders
+GET    /api/admin/orders/:id
+PUT    /api/admin/orders/:id/status
+PUT    /api/admin/orders/:id/payment
+PUT    /api/admin/orders/:id/refund
 ```
 
-The route structure is implemented in the backend under the `/api/v1` namespace.
+Legacy `/api/v1/admin` routes remain mounted for compatibility. The admin UI
+uses `/api/admin` and its separate session cookie.
 
 ---
 
 # ⚙️ Environment Variables
 
-Create a `.env` file in the project root.
+Create a backend `.env` file in `backend/` and a frontend `.env` file in
+`frontend/`. Do not place backend secrets in the frontend environment.
 
 ```env
 NODE_ENV=development
@@ -707,7 +704,9 @@ ADMIN_PASSWORD=<admin-password>
 ADMIN_PHONE=+910000000000
 ```
 
-The repository provides these variables in `.env.example`. **Never commit real credentials or secrets to GitHub.**
+The backend variables are documented in `backend/.env.example`; frontend API
+origins are documented in `frontend/.env.example`. **Never commit real
+credentials or secrets to GitHub.**
 
 Customers pay only the displayed product price multiplied by quantity. Checkout
 adds no GST, shipping, or other fees; the cart, order, and Razorpay totals all
@@ -730,34 +729,28 @@ cd TRYVOXEL---Ecommerce
 ## 2. Install Backend Dependencies
 
 ```bash
+cd backend
 npm install
 ```
 
 ## 3. Install Frontend Dependencies
 
 ```bash
-cd client
+cd frontend
 npm install
-cd ..
 ```
 
 ## 4. Configure Environment Variables
 
-Copy:
-
-```text
-.env.example
-```
-
-to:
-
-```text
-.env
-```
-
-Then configure MongoDB Atlas, Cloudinary, authentication, and application settings.
+Copy the backend template `backend/.env.example` to `backend/.env`. Then copy
+the frontend template `frontend/.env.example` to `frontend/.env`. Configure
+MongoDB Atlas, Cloudinary, authentication, and application settings in the
+backend environment. Set the customer and admin API URLs in the frontend
+environment.
 
 ## 5. Seed Initial Data
+
+Run the seed script from the `backend/` directory:
 
 ```bash
 npm run seed
@@ -767,9 +760,10 @@ The seed script can create/promote the initial administrator and populate the da
 
 ## 6. Start the Backend
 
-Development mode:
+In one terminal, start the backend from the `backend/` directory:
 
 ```bash
+cd backend
 npm run dev
 ```
 
@@ -795,22 +789,14 @@ http://localhost:5000/api/v1/health
 
 # 💻 Start the Frontend
 
-From the project root:
+In a separate terminal, start the frontend from the `frontend/` directory:
 
 ```bash
-npm run client
-```
-
-The Vite development server runs the React client.
-
-Alternatively:
-
-```bash
-cd client
+cd frontend
 npm run dev
 ```
 
-The default frontend origin configured for CORS is:
+The Vite development server runs the React client at:
 
 ```text
 http://localhost:5173
@@ -818,31 +804,34 @@ http://localhost:5173
 
 ---
 
-# 🏭 Production Build
+# 🏭 Production Build and Deployment
 
-Build the React client:
-
-```bash
-npm run build:client
-```
-
-This runs:
+Build the React client independently from the `frontend/` directory:
 
 ```bash
-npm run build --prefix client
+cd frontend
+npm run build
 ```
 
-After the client is built, the Express application can serve the generated `client/dist` directory when the build exists.
+The production bundle is written to `frontend/dist`. Deploy `frontend/dist` to
+a static frontend host and deploy the Express API separately. Set `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to the deployed API
+URLs at frontend build time. Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to
+the deployed frontend origins. Configure the static host to serve `index.html`
+for storefront routes and `admin.html` for the configured `VITE_ADMIN_BASE`
+route. Express does not serve the frontend build. Authentication continues to
+use cookies and sessions; keep the frontend and API same-site for production
+deployments unless the cookie and CSRF policy is deliberately adapted for a
+cross-site deployment.
 
 ---
 
 # 🧪 Testing
 
-The backend is configured with Jest and Supertest.
-
-Run tests:
+The backend is configured with Jest and Supertest. Run the suites from the
+`backend/` directory:
 
 ```bash
+cd backend
 npm test
 ```
 
@@ -852,23 +841,36 @@ Watch mode:
 npm run test:watch
 ```
 
-The project uses Node as the Jest test environment and looks for tests inside the `tests/` directory.
+The project uses Node as the Jest test environment and looks for tests inside the `backend/tests/` directory.
+The test helper clears and drops the `tryvoxel_test` database. Run the suite
+only with a disposable test database; it was not run during this migration to
+avoid deleting existing data.
 
 ---
 
 # 📦 Available NPM Scripts
 
-| Command                | Description                |
-| ---------------------- | -------------------------- |
-| `npm start`            | Start production server    |
-| `npm run dev`          | Start backend with Nodemon |
-| `npm run seed`         | Seed database              |
-| `npm test`             | Run test suite             |
-| `npm run test:watch`   | Run tests in watch mode    |
-| `npm run client`       | Start React/Vite client    |
-| `npm run build:client` | Build frontend             |
+These backend scripts are defined in `backend/package.json` and are run from
+the `backend/` directory:
 
-These scripts are defined in the root `package.json`.
+| Command                | Description                 |
+| ---------------------- | --------------------------- |
+| `npm start`            | Start production server     |
+| `npm run dev`          | Start backend with Nodemon  |
+| `npm run seed`         | Seed database               |
+| `npm run seed-admin`   | Seed/promote the admin user |
+| `npm run create-admin` | Create an admin user        |
+| `npm test`             | Run test suite              |
+| `npm run test:watch`   | Run tests in watch mode     |
+
+These frontend scripts are defined in `frontend/package.json` and are run from
+the `frontend/` directory:
+
+| Command           | Description                  |
+| ----------------- | ---------------------------- |
+| `npm run dev`     | Start Vite dev server (5173) |
+| `npm run build`   | Build the production bundle  |
+| `npm run preview` | Preview the built bundle     |
 
 ---
 
@@ -876,11 +878,11 @@ These scripts are defined in the root `package.json`.
 
 The seed data includes:
 
-* **3D-Desk**
-* **Lighting**
-* **Home Decor**
-* **Wearables**
-* **Digital Goods**
+- **3D-Desk**
+- **Lighting**
+- **Home Decor**
+- **Wearables**
+- **Digital Goods**
 
 Example seeded products include:
 
@@ -1069,17 +1071,17 @@ Some backend capabilities are intentionally scaffolded for future phases.
 
 ### Currently scaffolded / future implementation
 
-* Full order creation/processing
-* Order retrieval
-* Order cancellation
-* Order status updates
-* Refund processing
-* Admin dashboard statistics
-* Admin user management operations
-* Inventory administration
-* Payment administration
-* Admin review management
-* Admin settings
+- Full order creation/processing
+- Order retrieval
+- Order cancellation
+- Order status updates
+- Refund processing
+- Admin dashboard statistics
+- Admin user management operations
+- Inventory administration
+- Payment administration
+- Admin review management
+- Admin settings
 
 These controller methods currently return HTTP `501 Not Implemented`, with the source explicitly identifying them as future phases.
 
@@ -1093,49 +1095,49 @@ Potential next development phases include:
 
 ### Phase 1 — Storefront
 
-* [x] Product catalog
-* [x] Product filtering
-* [x] Product search
-* [x] Product details
-* [x] Categories
-* [x] User authentication
-* [x] Cart
+- [x] Product catalog
+- [x] Product filtering
+- [x] Product search
+- [x] Product details
+- [x] Categories
+- [x] User authentication
+- [x] Cart
 
 ### Phase 2 — 3D Commerce
 
-* [x] GLB/GLTF product model support
-* [x] Cloudinary 3D storage
-* [ ] Advanced 3D product viewer
-* [ ] Interactive model customization
-* [ ] AR preview
+- [x] GLB/GLTF product model support
+- [x] Cloudinary 3D storage
+- [ ] Advanced 3D product viewer
+- [ ] Interactive model customization
+- [ ] AR preview
 
 ### Phase 3 — Commerce
 
-* [ ] Complete checkout workflow
-* [ ] Order creation
-* [ ] Order history
-* [ ] Order tracking
-* [ ] Payment gateway integration
-* [ ] Refund workflow
+- [ ] Complete checkout workflow
+- [ ] Order creation
+- [ ] Order history
+- [ ] Order tracking
+- [ ] Payment gateway integration
+- [ ] Refund workflow
 
 ### Phase 4 — Administration
 
-* [ ] Admin dashboard analytics
-* [ ] Inventory management
-* [ ] Customer management
-* [ ] Payment management
-* [ ] Review moderation
-* [ ] Store settings
+- [ ] Admin dashboard analytics
+- [ ] Inventory management
+- [ ] Customer management
+- [ ] Payment management
+- [ ] Review moderation
+- [ ] Store settings
 
 ### Phase 5 — Advanced Experience
 
-* [ ] Wishlist
-* [ ] Product recommendations
-* [ ] Advanced search
-* [ ] Personalized shopping
-* [ ] Coupons and promotions
-* [ ] Notifications
-* [ ] Analytics dashboard
+- [ ] Wishlist
+- [ ] Product recommendations
+- [ ] Advanced search
+- [ ] Personalized shopping
+- [ ] Coupons and promotions
+- [ ] Notifications
+- [ ] Analytics dashboard
 
 ---
 
@@ -1155,9 +1157,9 @@ git clone <your-fork-url>
 git checkout -b feature/your-feature
 
 # Install dependencies
+cd backend
 npm install
-
-cd client
+cd ../frontend
 npm install
 cd ..
 
@@ -1181,15 +1183,15 @@ Then open a Pull Request.
 
 Before deploying this project:
 
-* Use a strong `SECRET_KEY`.
-* Never commit `.env`.
-* Never expose MongoDB credentials.
-* Never expose Cloudinary API secrets.
-* Change the initial admin password.
-* Configure production CORS origins.
-* Use HTTPS in production.
-* Review authentication and authorization rules.
-* Configure production environment variables separately from development.
+- Use a strong `SECRET_KEY`.
+- Never commit `.env`.
+- Never expose MongoDB credentials.
+- Never expose Cloudinary API secrets.
+- Change the initial admin password.
+- Configure production CORS origins.
+- Use HTTPS in production.
+- Review authentication and authorization rules.
+- Configure production environment variables separately from development.
 
 The repository's environment template explicitly warns against committing `.env` and expects secrets to be supplied through environment variables.
 
@@ -1197,7 +1199,7 @@ The repository's environment template explicitly warns against committing `.env`
 
 # 📜 License
 
-This project is currently released under the **ISC License** as specified in the root `package.json`.
+This project is currently released under the **ISC License** as specified in `backend/package.json`.
 
 ---
 

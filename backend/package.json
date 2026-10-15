@@ -13,9 +13,7 @@
     "seed-admin": "node scripts/seedAdmin.js",
     "create-admin": "node scripts/createAdmin.js",
     "test": "jest --watchAll=false --forceExit",
-    "test:watch": "jest --watch",
-    "client": "npm run dev --prefix client",
-    "build:client": "npm run build --prefix client"
+    "test:watch": "jest --watch"
   },
   "keywords": [
     "ecommerce",
@@ -24,7 +22,7 @@
     "mern",
     "tryvoxel"
   ],
-  "author": "Jasvinder × Shruti × Vishal",
+  "author": "TRYVOXEL",
   "license": "ISC",
   "type": "commonjs",
   "jest": {

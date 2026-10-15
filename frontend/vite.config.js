@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig(({ mode }) => {
-  const envDir = path.resolve(__dirname, "..");
+  const envDir = __dirname;
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
   const rewriteAdminEntry = (server) => {
@@ -34,13 +34,6 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      proxy: {
-        "/api": {
-          target: "http://localhost:5000",
-          changeOrigin: true,
-          cookieDomainRewrite: "localhost",
-        },
-      },
     },
     build: {
       outDir: "dist",

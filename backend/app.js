@@ -1,6 +1,5 @@
 require("dotenv").config();
 
-const fs = require("fs");
 const express = require("express");
 const helmet = require("helmet");
 const mongoSanitize = require("./middleware/mongoSanitize");
@@ -11,7 +10,6 @@ const MongoStore = require("connect-mongo").default;
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const path = require("path");
 
 const User = require("./models/User");
 const ExpressError = require("./utils/ExpressError");
@@ -330,44 +328,6 @@ function buildApp(dbClientPromise) {
   app.use("/api/admin/catalog", adminCatalogRouter);
   app.use("/api/admin/orders", adminOrdersRouter);
   app.use("/api/admin", requireAdminAuthOr404ForUnknown);
-
-  const clientDist = path.join(__dirname, "client", "dist");
-  const hasClientBuild =
-    fs.existsSync(clientDist) &&
-    fs.existsSync(path.join(clientDist, "index.html"));
-  const hasAdminBuild =
-    fs.existsSync(clientDist) &&
-    fs.existsSync(path.join(clientDist, "admin.html"));
-  const ADMIN_BASE_RAW = process.env.VITE_ADMIN_BASE || "/tvx-console";
-  const ADMIN_BASE = ADMIN_BASE_RAW.endsWith("/")
-    ? ADMIN_BASE_RAW.slice(0, -1)
-    : ADMIN_BASE_RAW;
-  const ADMIN_BASE_REGEX = new RegExp(
-    `^${ADMIN_BASE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\/.*)?$`,
-  );
-
-  if (hasClientBuild) {
-    if (hasAdminBuild) {
-      app.get("/admin.html", (_req, res) => {
-        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
-        res.sendStatus(404);
-      });
-    }
-    app.use(express.static(clientDist));
-    if (hasAdminBuild) {
-      app.get(ADMIN_BASE_REGEX, (_req, res) => {
-        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
-        res.sendFile(path.join(clientDist, "admin.html"));
-      });
-    }
-    app.get(/^(?!\/api).*/, (req, res) => {
-      if (hasAdminBuild && ADMIN_BASE_REGEX.test(req.path)) {
-        res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
-        return res.sendFile(path.join(clientDist, "admin.html"));
-      }
-      res.sendFile(path.join(clientDist, "index.html"));
-    });
-  }
 
   app.use("/api/v1", (req, res, next) => {
     next(
