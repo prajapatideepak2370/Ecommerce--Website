@@ -41,6 +41,12 @@ const userSchema = new Schema(
     isBlocked: { type: Boolean, default: false },
     phone: { type: String, default: "" },
     addresses: [addressSchema],
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
+    googleId: { type: String, default: null },
+    avatar: { type: String, default: "" },
+    authVersion: { type: Number, default: 0 },
+    resetTokenHash: { type: String, default: null, select: false },
+    resetTokenExpiresAt: { type: Date, default: null, select: false },
   },
   { timestamps: true },
 );
@@ -48,6 +54,11 @@ const userSchema = new Schema(
 userSchema.plugin(passportLocalMongoose.default || passportLocalMongoose, {
   usernameField: "username",
 });
+
+userSchema.index(
+  { googleId: 1 },
+  { unique: true, partialFilterExpression: { googleId: { $type: "string" } } },
+);
 
 userSchema.pre("save", function () {
   if (!this.addresses || this.addresses.length !== 1) return;

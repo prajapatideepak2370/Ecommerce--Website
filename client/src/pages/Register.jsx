@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import { register } from "../store/authSlice.js";
 import { Eye, EyeOff } from "lucide-react";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -129,6 +130,12 @@ export default function Register() {
             Create account
           </button>
         </form>
+        <div className="my-5 flex items-center gap-3 text-xs text-ink-400">
+          <span className="h-px flex-1 bg-ink-700" />
+          <span>or</span>
+          <span className="h-px flex-1 bg-ink-700" />
+        </div>
+        <GoogleAuthButton />
         <div className="mt-6 text-center text-sm text-ink-400">
           Already have an account?{" "}
           <Link to="/login" className="text-brand-300 link-underline">

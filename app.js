@@ -10,6 +10,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const path = require("path");
 
 const User = require("./models/User");
@@ -46,7 +47,13 @@ function buildApp(dbClientPromise) {
         useDefaults: true,
         directives: {
           "default-src": ["'self'"],
-          "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
+          "img-src": [
+            "'self'",
+            "data:",
+            "blob:",
+            "https://res.cloudinary.com",
+            "https://*.googleusercontent.com",
+          ],
           "media-src": ["'self'", "https://res.cloudinary.com"],
           "script-src": ["'self'", "https://checkout.razorpay.com"],
           "style-src": [
@@ -105,6 +112,48 @@ function buildApp(dbClientPromise) {
     },
   });
 
+  const passwordResetRequestLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: {
+        code: 429,
+        message: "Too many password reset requests. Please try again later.",
+      },
+    },
+  });
+
+  const passwordChangeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: {
+        code: 429,
+        message: "Too many password change attempts. Please try again later.",
+      },
+    },
+  });
+
+  const passwordResetVerifyLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: {
+        code: 429,
+        message: "Too many password reset attempts. Please try again later.",
+      },
+    },
+  });
+
   const generalLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 200,
@@ -115,6 +164,10 @@ function buildApp(dbClientPromise) {
   app.use("/api/v1", generalLimiter);
   app.use("/api/v1/users/login", authLimiter);
   app.use("/api/v1/users/register", authLimiter);
+  app.use("/api/v1/users/auth/google", authLimiter);
+  app.use("/api/v1/users/password/change", passwordChangeLimiter);
+  app.use("/api/v1/users/password/forgot", passwordResetRequestLimiter);
+  app.use("/api/v1/users/password/reset", passwordResetVerifyLimiter);
 
   const sessionStore = MongoStore.create({
     clientPromise: dbClientPromise,
@@ -143,8 +196,58 @@ function buildApp(dbClientPromise) {
   passport.use(
     new LocalStrategy({ usernameField: "username" }, User.authenticate()),
   );
-  passport.serializeUser(User.serializeUser());
-  passport.deserializeUser(User.deserializeUser());
+
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+  const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+  const { resolveGoogleUser } = require("./utils/googleAuth");
+
+  if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: GOOGLE_CLIENT_ID,
+          clientSecret: GOOGLE_CLIENT_SECRET,
+          callbackURL: GOOGLE_CALLBACK_URL,
+          state: true,
+          pkce: "S256",
+        },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            const user = await resolveGoogleUser(profile);
+            return done(null, user);
+          } catch (err) {
+            if (err.name === "GoogleAuthError") {
+              return done(null, false, { message: err.code });
+            }
+            return done(err);
+          }
+        },
+      ),
+    );
+  }
+
+  passport.serializeUser((user, done) => {
+    done(null, {
+      username: user.username,
+      authVersion: user.authVersion || 0,
+    });
+  });
+  passport.deserializeUser(async (sessionUser, done) => {
+    try {
+      const legacySession = typeof sessionUser === "string";
+      const user = await User.findByUsername(
+        legacySession ? sessionUser : sessionUser.username,
+      );
+      const sessionVersion = legacySession ? 0 : sessionUser.authVersion;
+      if (!user || (user.authVersion || 0) !== sessionVersion) {
+        return done(null, false);
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  });
 
   app.use("/api/v1", customerSessionMiddleware);
   app.use("/api/v1", passport.initialize());

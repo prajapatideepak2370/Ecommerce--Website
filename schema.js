@@ -1,5 +1,14 @@
 const Joi = require("joi");
 
+const strongPassword = Joi.string()
+  .min(5)
+  .max(128)
+  .pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/)
+  .messages({
+    "string.min": "Password must be at least 5 characters long.",
+    "string.pattern.base": "Password must include at least one letter and one number.",
+  });
+
 module.exports.authSchemas = {
   register: Joi.object({
     name: Joi.string().min(2).max(100).required(),
@@ -20,6 +29,30 @@ module.exports.authSchemas = {
   })
     .xor("username", "email")
     .messages({ "object.missing": "Provide either username or email." }),
+
+  changePassword: Joi.object({
+    currentPassword: Joi.string().min(1).max(128).required(),
+    newPassword: strongPassword.required(),
+    confirmPassword: Joi.string()
+      .valid(Joi.ref("newPassword"))
+      .required()
+      .messages({ "any.only": "New password and confirmation do not match." }),
+  }),
+
+  forgotPassword: Joi.object({
+    email: Joi.string()
+      .email({ tlds: { allow: false } })
+      .required(),
+  }),
+
+  resetPassword: Joi.object({
+    token: Joi.string().length(64).hex().required(),
+    newPassword: strongPassword.required(),
+    confirmPassword: Joi.string()
+      .valid(Joi.ref("newPassword"))
+      .required()
+      .messages({ "any.only": "New password and confirmation do not match." }),
+  }),
 
   profile: Joi.object({
     name: Joi.string().min(2).max(100),

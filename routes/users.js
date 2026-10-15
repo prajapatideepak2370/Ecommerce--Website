@@ -8,6 +8,31 @@ const { validate } = require("../middleware/validate");
 const { authSchemas } = require("../schema");
 const ExpressError = require("../utils/ExpressError");
 
+const googleErrorCodes = new Set([
+  "access_denied",
+  "account_blocked",
+  "account_conflict",
+  "email_not_verified",
+  "not_configured",
+  "authentication_failed",
+]);
+
+function frontendRedirect(path, query = {}) {
+  const frontendUrl = new URL(
+    path,
+    process.env.FRONTEND_URL || "http://localhost:5173",
+  );
+  Object.entries(query).forEach(([key, value]) =>
+    frontendUrl.searchParams.set(key, value),
+  );
+  return frontendUrl.toString();
+}
+
+function googleErrorCode(err, info, req) {
+  const code = err?.code || info?.message || req.query.error;
+  return googleErrorCodes.has(code) ? code : "authentication_failed";
+}
+
 async function normalizeLogin(req, _res, next) {
   const { username, email, password } = req.body || {};
   const loginId = (username || email || "").toString().trim();
@@ -43,6 +68,44 @@ router.post(
   catchAsync(userController.login),
 );
 
+router.get(
+  "/auth/google",
+  (req, res, next) => {
+    if (
+      !process.env.GOOGLE_CLIENT_ID ||
+      !process.env.GOOGLE_CLIENT_SECRET ||
+      !process.env.GOOGLE_CALLBACK_URL
+    ) {
+      return res.redirect(
+        frontendRedirect("/login", { google_error: "not_configured" }),
+      );
+    }
+    return passport.authenticate("google", {
+      scope: ["profile", "email"],
+    })(req, res, next);
+  },
+);
+
+router.get(
+  "/auth/google/callback",
+  (req, res, next) => {
+    passport.authenticate("google", { session: false }, (err, user, info) => {
+      if (err && err.name !== "GoogleAuthError") return next(err);
+      if (!user) {
+        return res.redirect(
+          frontendRedirect("/login", {
+            google_error: googleErrorCode(err, info, req),
+          }),
+        );
+      }
+      req.login(user, (loginErr) => {
+        if (loginErr) return next(loginErr);
+        return res.redirect(frontendRedirect("/", { google_success: "1" }));
+      });
+    })(req, res, next);
+  },
+);
+
 router.post("/logout", requireAuth, catchAsync(userController.logout));
 
 router.get("/me", requireAuth, catchAsync(userController.getMe));
@@ -52,6 +115,25 @@ router.put(
   requireAuth,
   validate(authSchemas.profile),
   catchAsync(userController.updateProfile),
+);
+
+router.post(
+  "/password/change",
+  requireAuth,
+  validate(authSchemas.changePassword),
+  catchAsync(userController.changePassword),
+);
+
+router.post(
+  "/password/forgot",
+  validate(authSchemas.forgotPassword),
+  catchAsync(userController.forgotPassword),
+);
+
+router.post(
+  "/password/reset",
+  validate(authSchemas.resetPassword),
+  catchAsync(userController.resetPassword),
 );
 
 router

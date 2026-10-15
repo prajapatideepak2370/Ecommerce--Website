@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { CreditCard, Loader2, ShieldCheck, Truck } from "lucide-react";
 import { clearCart, selectCartItems } from "../store/cartSlice.js";
-import { orderApi } from "../api/endpoints.js";
+import { addressApi, orderApi } from "../api/endpoints.js";
 
 const EMPTY_ADDRESS = {
   fullName: "",
@@ -13,8 +13,20 @@ const EMPTY_ADDRESS = {
   city: "",
   state: "",
   postalCode: "",
-  country: "India",
+  country: "",
 };
+
+const checkoutAddressFields = [
+  "label",
+  "fullName",
+  "phone",
+  "line1",
+  "line2",
+  "city",
+  "state",
+  "postalCode",
+  "country",
+];
 
 const formatPrice = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -106,16 +118,72 @@ export default function Checkout() {
     (state) => state.cart,
   );
   const [address, setAddress] = useState(EMPTY_ADDRESS);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [addressLoadError, setAddressLoadError] = useState("");
   const [error, setError] = useState("");
   const [paymentNotice, setPaymentNotice] = useState("");
   const [paying, setPaying] = useState(false);
   const paymentInProgress = useRef(false);
 
+  useEffect(() => {
+    let active = true;
+    addressApi
+      .list()
+      .then((addresses) => {
+        if (!active || !Array.isArray(addresses)) return;
+        setSavedAddresses(addresses);
+        const preferred = addresses.find((item) => item.isDefault) || addresses[0];
+        if (preferred) {
+          setSelectedAddressId(preferred._id);
+          setAddress(
+            Object.fromEntries(
+              checkoutAddressFields.map((field) => [
+                field,
+                preferred[field] || "",
+              ]),
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAddressLoadError(
+            "Saved addresses couldn't be loaded. You can still enter your shipping address below.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const updateAddress = (event) => {
+    setSelectedAddressId("");
     setAddress((current) => ({
       ...current,
       [event.target.name]: event.target.value,
     }));
+  };
+
+  const selectSavedAddress = (event) => {
+    const addressId = event.target.value;
+    setSelectedAddressId(addressId);
+    const selected = savedAddresses.find(
+      (savedAddress) => String(savedAddress._id) === addressId,
+    );
+    if (selected) {
+      setAddress(
+        Object.fromEntries(
+          checkoutAddressFields.map((field) => [
+            field,
+            selected[field] || "",
+          ]),
+        ),
+      );
+    } else {
+      setAddress({ ...EMPTY_ADDRESS });
+    }
   };
 
   const buildOrderItems = () =>
@@ -318,6 +386,29 @@ export default function Checkout() {
             <h2 className="font-semibold flex items-center gap-2 mb-5">
               <Truck size={17} /> Shipping address
             </h2>
+            {addressLoadError && (
+              <p role="alert" className="text-sm text-amber-300 mb-4">
+                {addressLoadError}
+              </p>
+            )}
+            {savedAddresses.length > 0 && (
+              <label className="block mb-4">
+                <span className="input-label">Use a saved address</span>
+                <select
+                  value={selectedAddressId}
+                  onChange={selectSavedAddress}
+                  className="w-full"
+                >
+                  <option value="">Enter a different address</option>
+                  {savedAddresses.map((savedAddress) => (
+                    <option key={savedAddress._id} value={savedAddress._id}>
+                      {savedAddress.label || "Address"} — {savedAddress.line1},{" "}
+                      {savedAddress.city}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="grid md:grid-cols-2 gap-4">
               {[
                 ["fullName", "Full name", "text"],

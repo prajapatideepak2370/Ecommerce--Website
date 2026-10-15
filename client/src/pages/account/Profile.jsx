@@ -9,9 +9,18 @@ export default function Profile() {
     <div>
       <h2 className="font-display text-2xl font-semibold mb-6">My Profile</h2>
       <div className="grid md:grid-cols-[auto_1fr] gap-6 items-start">
-        <div className="h-28 w-28 rounded-2xl bg-gradient-to-br from-brand-500/40 to-accent/30 grid place-items-center font-display text-3xl font-semibold">
-          {user?.name?.[0] || "U"}
-        </div>
+        {user?.avatar ? (
+          <img
+            src={user.avatar}
+            alt={`${user.name || "User"} profile`}
+            referrerPolicy="no-referrer"
+            className="h-28 w-28 rounded-2xl object-cover"
+          />
+        ) : (
+          <div className="h-28 w-28 rounded-2xl bg-gradient-to-br from-brand-500/40 to-accent/30 grid place-items-center font-display text-3xl font-semibold">
+            {user?.name?.[0] || "U"}
+          </div>
+        )}
         <div className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>

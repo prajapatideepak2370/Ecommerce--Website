@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { login, selectIsAuthenticated, selectAuthLoading } from "../store/authSlice.js";
 import { fetchCart } from "../store/cartSlice.js";
 import { Eye, EyeOff } from "lucide-react";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -45,7 +46,15 @@ export default function Login() {
             <input required name="username" value={form.username} onChange={onChange} placeholder="you@example.com" className="w-full" autoComplete="username" />
           </div>
           <div>
-            <label className="input-label">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="input-label">Password</label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-brand-300 link-underline mb-2"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input required name="password" type={showPw ? "text" : "password"} value={form.password} onChange={onChange} className="w-full pr-10" autoComplete="current-password" />
               <button type="button" onClick={() => setShowPw(v => !v)} aria-label="Toggle password" className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 grid place-items-center rounded-md text-ink-400 hover:text-white">
@@ -57,6 +66,12 @@ export default function Login() {
             {authLoading ? "Logging in…" : "Log in"}
           </button>
         </form>
+        <div className="my-5 flex items-center gap-3 text-xs text-ink-400">
+          <span className="h-px flex-1 bg-ink-700" />
+          <span>or</span>
+          <span className="h-px flex-1 bg-ink-700" />
+        </div>
+        <GoogleAuthButton />
         <div className="mt-6 text-center text-sm text-ink-400">
           New here?{" "}
           <Link to="/register" className="text-brand-300 link-underline">Create an account</Link>

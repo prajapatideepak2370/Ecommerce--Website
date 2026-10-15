@@ -6,6 +6,20 @@ export const authApi = {
   login: (payload) => api.post("/users/login", payload).then(unwrap),
   logout: () => api.post("/users/logout").then(unwrap),
   updateProfile: (payload) => api.put("/users/profile", payload).then(unwrap),
+  changePassword: (payload) =>
+    api.post("/users/password/change", payload).then(unwrap),
+  requestPasswordReset: (payload) =>
+    api.post("/users/password/forgot", payload).then(unwrap),
+  resetPassword: (payload) =>
+    api.post("/users/password/reset", payload).then(unwrap),
+};
+
+export const addressApi = {
+  list: () => api.get("/users/addresses").then(unwrap),
+  create: (payload) => api.post("/users/addresses", payload).then(unwrap),
+  update: (id, payload) =>
+    api.put(`/users/addresses/${id}`, payload).then(unwrap),
+  remove: (id) => api.delete(`/users/addresses/${id}`).then(unwrap),
 };
 
 export const productApi = {
