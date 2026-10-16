@@ -37,7 +37,7 @@ backend/
 ├── tests/           Jest + Supertest suites
 ├── schema.js        Joi validation schemas
 ├── app.js           Express app factory (middleware + route mounting)
-└── server.js        DB connection + HTTP listener
+└── server.js        Cached DB connection + local HTTP listener/serverless handler
 ```
 
 ## Environment
@@ -73,6 +73,10 @@ npm install
 npm run dev     # nodemon, http://localhost:5000
 npm start       # production
 ```
+
+`server.js` exports a serverless request handler. MongoDB is connected lazily
+and its connection promise is reused across warm invocations; local `npm start`
+continues to launch the HTTP listener.
 
 Health check: `GET http://localhost:5000/api/v1/health`
 

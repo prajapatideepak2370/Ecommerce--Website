@@ -2,51 +2,99 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const { buildApp } = require("./app");
 
-const DB_URL = process.env.ATLASDB_URL;
-
-if (!DB_URL) {
-  console.error("FATAL: ATLASDB_URL is not set. Check your .env file.");
-  process.exit(1);
-}
+const CONNECTION_CACHE_KEY = "__tryvoxelMongooseConnection";
+let app;
 
 async function connectDB() {
+  const dbUrl = process.env.ATLASDB_URL;
+  if (!dbUrl) {
+    throw new Error("ATLASDB_URL is not set. Check your environment.");
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  const connectionCache =
+    globalThis[CONNECTION_CACHE_KEY] ||
+    (globalThis[CONNECTION_CACHE_KEY] = { promise: null });
+
+  if (mongoose.connection.readyState === 2 && connectionCache.promise) {
+    return connectionCache.promise;
+  }
+
+  connectionCache.promise = null;
+  const connectionPromise = mongoose.connect(dbUrl, {
+    tls: dbUrl.startsWith("mongodb+srv://"),
+    serverSelectionTimeoutMS: 10000,
+    maxPoolSize: 10,
+  });
+  connectionCache.promise = connectionPromise;
+
   try {
-    await mongoose.connect(DB_URL, {
-      tls: DB_URL.startsWith("mongodb+srv://"),
-      serverSelectionTimeoutMS: 10000,
-      maxPoolSize: 10,
-    });
+    await connectionPromise;
     console.log(
       "Connected to MongoDB:",
-      DB_URL.split("@")[1]?.split("/")[0] || DB_URL,
+      dbUrl.split("@")[1]?.split("/")[0] || dbUrl,
     );
+    return mongoose.connection;
   } catch (err) {
     console.error("MongoDB connection failed:", err.message);
+    if (connectionCache.promise === connectionPromise) {
+      connectionCache.promise = null;
+    }
     throw err;
   }
 }
 
-async function startServer() {
-  await connectDB();
-
+function createApp() {
   const dbClientPromise = mongoose.connection
     .asPromise()
     .then((conn) => conn.getClient());
 
-  const app = buildApp(dbClientPromise);
+  app = buildApp(dbClientPromise);
   app.set("dbState", "connected");
+  return app;
+}
+
+async function startServer() {
+  await connectDB();
+  const expressApp = createApp();
 
   const port = Number(process.env.PORT) || 5000;
   const hostname = process.env.HOST || "localhost";
 
-  app.listen(port, hostname, () => {
+  expressApp.listen(port, hostname, () => {
     console.log(`TRYVOXEL³ API running at http://${hostname}:${port}`);
     console.log(`Health: http://${hostname}:${port}/api/v1/health`);
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
   });
 }
 
-startServer().catch((err) => {
-  console.error("FATAL startServer error:", err);
-  process.exit(1);
-});
+async function serverlessHandler(req, res) {
+  try {
+    await connectDB();
+    const expressApp = app || createApp();
+    return expressApp(req, res);
+  } catch (err) {
+    console.error("Serverless request initialization failed:", err);
+    if (!res.headersSent) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 503,
+          message: "Service temporarily unavailable",
+        },
+      });
+    }
+  }
+}
+
+module.exports = serverlessHandler;
+
+if (require.main === module) {
+  startServer().catch((err) => {
+    console.error("FATAL startServer error:", err);
+    process.exit(1);
+  });
+}
