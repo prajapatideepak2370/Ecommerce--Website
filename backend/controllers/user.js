@@ -1,6 +1,6 @@
 const ExpressError = require("../utils/ExpressError");
 const { sendSuccess } = require("../utils/helpers");
-const User = require("../models/User");
+const User = require("../models/user");
 const _ = require("lodash");
 const crypto = require("crypto");
 const emailService = require("../utils/email");
@@ -28,7 +28,9 @@ module.exports.register = async (req, res, next) => {
   }).select("_id email username");
   if (dup) {
     if (String(dup.email).toLowerCase() === String(email).toLowerCase()) {
-      return next(new ExpressError(409, "A user with this email already exists."));
+      return next(
+        new ExpressError(409, "A user with this email already exists."),
+      );
     }
     return next(new ExpressError(409, "This username is already taken."));
   }
@@ -84,8 +86,14 @@ module.exports.updateProfile = async (req, res, next) => {
   if (allowed.email) allowed.email = allowed.email.toLowerCase();
 
   if (allowed.email && allowed.email !== req.user.email) {
-    const dup = await User.findOne({ email: allowed.email, _id: { $ne: req.user._id } });
-    if (dup) return next(new ExpressError(409, "A user with this email already exists."));
+    const dup = await User.findOne({
+      email: allowed.email,
+      _id: { $ne: req.user._id },
+    });
+    if (dup)
+      return next(
+        new ExpressError(409, "A user with this email already exists."),
+      );
   }
 
   const updated = await User.findByIdAndUpdate(
@@ -108,11 +116,19 @@ module.exports.getAddresses = async (req, res) => {
 module.exports.changePassword = async (req, res, next) => {
   const { currentPassword, newPassword } = req.body;
   if (currentPassword === newPassword) {
-    return next(new ExpressError(400, "Choose a new password different from your current password."));
+    return next(
+      new ExpressError(
+        400,
+        "Choose a new password different from your current password.",
+      ),
+    );
   }
 
   const user = await User.findById(req.user._id);
-  if (!user) return next(new ExpressError(401, "Authentication required. Please log in."));
+  if (!user)
+    return next(
+      new ExpressError(401, "Authentication required. Please log in."),
+    );
 
   user.authVersion = (user.authVersion || 0) + 1;
   try {
@@ -196,7 +212,12 @@ module.exports.resetPassword = async (req, res, next) => {
   }).select("+resetTokenHash +resetTokenExpiresAt");
 
   if (!user) {
-    return next(new ExpressError(400, "This password reset link is invalid or has expired."));
+    return next(
+      new ExpressError(
+        400,
+        "This password reset link is invalid or has expired.",
+      ),
+    );
   }
 
   await user.setPassword(req.body.newPassword);
@@ -219,10 +240,17 @@ module.exports.resetPassword = async (req, res, next) => {
   );
 
   if (!updated) {
-    return next(new ExpressError(400, "This password reset link is invalid or has expired."));
+    return next(
+      new ExpressError(
+        400,
+        "This password reset link is invalid or has expired.",
+      ),
+    );
   }
 
-  sendSuccess(res, { message: "Password reset successfully. You can now log in." });
+  sendSuccess(res, {
+    message: "Password reset successfully. You can now log in.",
+  });
 };
 
 module.exports.addAddress = async (req, res) => {
@@ -266,11 +294,13 @@ module.exports.updateAddress = async (req, res, next) => {
   }
   await user.save();
 
-  const saved = await User.findById(
-    req.user._id,
-    { addresses: { $elemMatch: { _id: addressId } } },
-  ).lean();
-  sendSuccess(res, (saved && saved.addresses && saved.addresses[0]) || addr.toObject());
+  const saved = await User.findById(req.user._id, {
+    addresses: { $elemMatch: { _id: addressId } },
+  }).lean();
+  sendSuccess(
+    res,
+    (saved && saved.addresses && saved.addresses[0]) || addr.toObject(),
+  );
 };
 
 module.exports.deleteAddress = async (req, res, next) => {

@@ -1,6 +1,6 @@
 const { Passport } = require("passport");
 const LocalStrategy = require("passport-local");
-const User = require("../models/User");
+const User = require("../models/user");
 
 const adminPassport = new Passport();
 
@@ -8,7 +8,9 @@ const GENERIC_INVALID = "Invalid credentials.";
 
 async function adminLocalVerifier(usernameOrEmail, password, done) {
   try {
-    const rawId = String(usernameOrEmail || "").trim().toLowerCase();
+    const rawId = String(usernameOrEmail || "")
+      .trim()
+      .toLowerCase();
     if (!rawId || !password) {
       return done(null, false, { message: GENERIC_INVALID });
     }

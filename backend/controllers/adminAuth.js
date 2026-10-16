@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../models/user");
 const { sendSuccess } = require("../utils/helpers");
 const { GENERIC_INVALID } = require("../utils/adminPassport");
 const ExpressError = require("../utils/ExpressError");

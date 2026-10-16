@@ -1,7 +1,7 @@
 const catchAsync = require("../utils/catchAsync");
 const ExpressError = require("../utils/ExpressError");
 const Order = require("../models/Order");
-const User = require("../models/User");
+const User = require("../models/user");
 const Product = require("../models/Product");
 const { audit } = require("../utils/adminAudit");
 
@@ -18,7 +18,10 @@ const ORDER_STATUSES = [
 const PAYMENT_STATUSES = ["Pending", "Paid", "Failed", "Refunded"];
 
 function formatOrderNumber(id) {
-  const hex = String(id || "").slice(-6).toUpperCase() || "000000";
+  const hex =
+    String(id || "")
+      .slice(-6)
+      .toUpperCase() || "000000";
   return `TVX-${hex}`;
 }
 
@@ -93,19 +96,31 @@ const listOrders = catchAsync(async (req, res) => {
   };
   const sortBy = sortMap[sort] || sortMap.newest;
 
-  const [orders, total, stats, statusCounts, paymentCounts] = await Promise.all([
-    Order.find(filter)
-      .sort(sortBy)
-      .skip(skip)
-      .limit(Math.max(1, Number(limit)))
-      .populate("user", "name email username phone"),
-    Order.countDocuments(filter),
-    Order.aggregate([
-      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" }, totalOrders: { $sum: 1 } } },
-    ]),
-    Order.aggregate([{ $group: { _id: "$orderStatus", count: { $sum: 1 } } }]),
-    Order.aggregate([{ $group: { _id: "$payment.status", count: { $sum: 1 } } }]),
-  ]);
+  const [orders, total, stats, statusCounts, paymentCounts] = await Promise.all(
+    [
+      Order.find(filter)
+        .sort(sortBy)
+        .skip(skip)
+        .limit(Math.max(1, Number(limit)))
+        .populate("user", "name email username phone"),
+      Order.countDocuments(filter),
+      Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$totalAmount" },
+            totalOrders: { $sum: 1 },
+          },
+        },
+      ]),
+      Order.aggregate([
+        { $group: { _id: "$orderStatus", count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        { $group: { _id: "$payment.status", count: { $sum: 1 } } },
+      ]),
+    ],
+  );
 
   res.json({
     success: true,
@@ -117,8 +132,12 @@ const listOrders = catchAsync(async (req, res) => {
       summary: {
         totalRevenue: stats[0]?.totalRevenue || 0,
         totalOrders: stats[0]?.totalOrders || 0,
-        statusCounts: Object.fromEntries(statusCounts.map((s) => [s._id, s.count])),
-        paymentCounts: Object.fromEntries(paymentCounts.map((s) => [s._id, s.count])),
+        statusCounts: Object.fromEntries(
+          statusCounts.map((s) => [s._id, s.count]),
+        ),
+        paymentCounts: Object.fromEntries(
+          paymentCounts.map((s) => [s._id, s.count]),
+        ),
       },
     },
   });
@@ -136,7 +155,9 @@ const getOrder = catchAsync(async (req, res) => {
 const restockItems = async (order) => {
   for (const item of order.items || []) {
     if (item.product) {
-      await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: item.quantity },
+      });
     }
   }
 };
@@ -155,7 +176,11 @@ const updateStatus = catchAsync(async (req, res) => {
     order.orderStatus = orderStatus;
     const last = order.statusHistory[order.statusHistory.length - 1];
     if (!last || last.status !== orderStatus) {
-      order.statusHistory.push({ status: orderStatus, note, timestamp: new Date() });
+      order.statusHistory.push({
+        status: orderStatus,
+        note,
+        timestamp: new Date(),
+      });
     } else if (note) {
       last.note = note;
       last.timestamp = new Date();

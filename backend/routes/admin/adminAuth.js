@@ -38,7 +38,7 @@ async function normalizeAdminLogin(req, _res, next) {
     return next(new ExpressError(400, GENERIC_INVALID));
   }
   if (loginId.includes("@")) {
-    const User = require("../../models/User");
+    const User = require("../../models/user");
     const found = await User.findOne({
       email: loginId.toLowerCase(),
     }).select("username");

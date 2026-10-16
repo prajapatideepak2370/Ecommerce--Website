@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const catchAsync = require("../utils/catchAsync");
 const ExpressError = require("../utils/ExpressError");
 const Order = require("../models/Order");
-const User = require("../models/User");
+const User = require("../models/user");
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const {
@@ -576,9 +576,12 @@ const createRazorpayOrderController = catchAsync(async (req, res) => {
     razorpayOrder.currency !== "INR" ||
     razorpayOrder.amount !== Math.round((totalAmount + Number.EPSILON) * 100)
   ) {
-    console.error("[payments] Razorpay created an order with unexpected amount data", {
-      stage: "create_order_validation",
-    });
+    console.error(
+      "[payments] Razorpay created an order with unexpected amount data",
+      {
+        stage: "create_order_validation",
+      },
+    );
     throw new ExpressError(
       502,
       "The payment amount could not be confirmed. Please try again.",
@@ -606,7 +609,8 @@ const verifyRazorpayPayment = catchAsync(async (req, res) => {
       "Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
     );
   }
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+    req.body;
   const userId = req.user?._id || req.user?.id;
   if (!userId) throw new ExpressError(401, "Authentication required.");
 
@@ -680,10 +684,13 @@ const verifyRazorpayPayment = catchAsync(async (req, res) => {
     gatewayPayment?.amount !== expectedAmountPaise ||
     gatewayPayment?.currency !== "INR"
   ) {
-    console.warn("[payments] Razorpay payment details did not match the checkout", {
-      stage: "payment_validation",
-      code: "PAYMENT_DETAILS_MISMATCH",
-    });
+    console.warn(
+      "[payments] Razorpay payment details did not match the checkout",
+      {
+        stage: "payment_validation",
+        code: "PAYMENT_DETAILS_MISMATCH",
+      },
+    );
     throw new ExpressError(
       400,
       "The payment details do not match this order. Please contact support.",

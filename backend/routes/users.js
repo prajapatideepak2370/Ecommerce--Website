@@ -37,11 +37,13 @@ async function normalizeLogin(req, _res, next) {
   const { username, email, password } = req.body || {};
   const loginId = (username || email || "").toString().trim();
   if (!loginId || !password) {
-    return next(new ExpressError(400, "Username/email and password are required."));
+    return next(
+      new ExpressError(400, "Username/email and password are required."),
+    );
   }
 
   if (loginId.includes("@")) {
-    const found = await require("../models/User")
+    const found = await require("../models/user")
       .findOne({ email: loginId.toLowerCase() })
       .select("username");
     if (!found) {
@@ -68,43 +70,37 @@ router.post(
   catchAsync(userController.login),
 );
 
-router.get(
-  "/auth/google",
-  (req, res, next) => {
-    if (
-      !process.env.GOOGLE_CLIENT_ID ||
-      !process.env.GOOGLE_CLIENT_SECRET ||
-      !process.env.GOOGLE_CALLBACK_URL
-    ) {
+router.get("/auth/google", (req, res, next) => {
+  if (
+    !process.env.GOOGLE_CLIENT_ID ||
+    !process.env.GOOGLE_CLIENT_SECRET ||
+    !process.env.GOOGLE_CALLBACK_URL
+  ) {
+    return res.redirect(
+      frontendRedirect("/login", { google_error: "not_configured" }),
+    );
+  }
+  return passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })(req, res, next);
+});
+
+router.get("/auth/google/callback", (req, res, next) => {
+  passport.authenticate("google", { session: false }, (err, user, info) => {
+    if (err && err.name !== "GoogleAuthError") return next(err);
+    if (!user) {
       return res.redirect(
-        frontendRedirect("/login", { google_error: "not_configured" }),
+        frontendRedirect("/login", {
+          google_error: googleErrorCode(err, info, req),
+        }),
       );
     }
-    return passport.authenticate("google", {
-      scope: ["profile", "email"],
-    })(req, res, next);
-  },
-);
-
-router.get(
-  "/auth/google/callback",
-  (req, res, next) => {
-    passport.authenticate("google", { session: false }, (err, user, info) => {
-      if (err && err.name !== "GoogleAuthError") return next(err);
-      if (!user) {
-        return res.redirect(
-          frontendRedirect("/login", {
-            google_error: googleErrorCode(err, info, req),
-          }),
-        );
-      }
-      req.login(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
-        return res.redirect(frontendRedirect("/", { google_success: "1" }));
-      });
-    })(req, res, next);
-  },
-);
+    req.login(user, (loginErr) => {
+      if (loginErr) return next(loginErr);
+      return res.redirect(frontendRedirect("/", { google_success: "1" }));
+    });
+  })(req, res, next);
+});
 
 router.post("/logout", requireAuth, catchAsync(userController.logout));
 
