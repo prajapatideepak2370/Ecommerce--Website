@@ -76,5 +76,7 @@ npm run preview   # preview the production build
 ```
 
 Set `VITE_API_BASE` / `VITE_ADMIN_API_BASE` to the deployed API URLs at build
-time. Serve `index.html` for storefront routes and `admin.html` for the
-`VITE_ADMIN_BASE` route on the static host.
+time. On Vercel, `vercel.json` serves `admin.html` for `/tvx-console` and all
+of its nested routes. If you change `VITE_ADMIN_BASE`, update the matching
+admin rewrites in `vercel.json` as well. Other static hosts must serve
+`admin.html` at that base path and for nested admin routes.

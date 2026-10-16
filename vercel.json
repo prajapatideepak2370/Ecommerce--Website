@@ -18,6 +18,20 @@
       }
     },
     {
+      "source": "/tvx-console",
+      "destination": {
+        "service": "frontend",
+        "path": "/admin.html"
+      }
+    },
+    {
+      "source": "/tvx-console/:path*",
+      "destination": {
+        "service": "frontend",
+        "path": "/admin.html"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
         "service": "frontend"
