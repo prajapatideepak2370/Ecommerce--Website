@@ -7,11 +7,12 @@ const { productSchemas, adminSchemas } = require("../schema");
 const { requireAuth } = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/admin");
 const multer = require("multer");
-const { imageStorage, model3DStorage } = require("../utils/cloudinary");
+const { imageStorage } = require("../utils/cloudinary");
 
-const uploadImages = multer({ storage: imageStorage });
-const upload3D = multer({ storage: model3DStorage });
-
+const uploadImages = multer({
+  storage: imageStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 router
   .route("/")
   .get(validate(productSchemas.query, "query"), catchAsync(productController.listProducts))

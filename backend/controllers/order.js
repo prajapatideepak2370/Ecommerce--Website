@@ -5,6 +5,8 @@ const Order = require("../models/Order");
 const User = require("../models/user");
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
+const { escapeRegex } = require("../utils/helpers");
+const withTransaction = require("../utils/withTransaction");
 const {
   createOrder: createRazorpayOrder,
   fetchOrder: fetchRazorpayOrder,
@@ -54,27 +56,24 @@ function serializeOrder(order, { withUser = false } = {}) {
   };
 }
 
-async function resolveProduct(productId, productMeta) {
+async function resolveProduct(productId, productMeta, session) {
   if (!productId) return null;
-  const tryMatch = async (query) => {
-    try {
-      return await Product.findOne(query);
-    } catch {
-      return null;
-    }
+  const findProduct = (filter) => {
+    const query = Product.findOne(filter);
+    return session ? query.session(session) : query;
   };
   if (mongoose.Types.ObjectId.isValid(String(productId))) {
-    const byId = await tryMatch({ _id: productId });
+    const byId = await findProduct({ _id: productId });
     if (byId) return byId;
   }
   const slug = productMeta?.slug;
   if (slug) {
-    const bySlug = await tryMatch({ slug: String(slug).trim() });
+    const bySlug = await findProduct({ slug: String(slug).trim() });
     if (bySlug) return bySlug;
   }
   const name = productMeta?.name;
   if (name) {
-    const byName = await tryMatch({ name: String(name).trim() });
+    const byName = await findProduct({ name: String(name).trim() });
     if (byName) return byName;
   }
   return null;
@@ -82,7 +81,7 @@ async function resolveProduct(productId, productMeta) {
 
 async function buildOrderItemsFromEntries(
   entries,
-  { allowFrontendPrice = false } = {},
+  { allowFrontendPrice = false, session } = {},
 ) {
   let subtotal = 0;
   const items = [];
@@ -91,10 +90,14 @@ async function buildOrderItemsFromEntries(
   for (const entry of entries) {
     const rawProductId = entry.product || entry._id;
     const productMeta = entry.productMeta || {};
-    const resolvedProduct = await resolveProduct(rawProductId, {
-      slug: productMeta.slug,
-      name: entry.name,
-    });
+    const resolvedProduct = await resolveProduct(
+      rawProductId,
+      {
+        slug: productMeta.slug,
+        name: entry.name,
+      },
+      session,
+    );
 
     if (!resolvedProduct) {
       const displayName = entry.name || productMeta?.name || rawProductId;
@@ -189,7 +192,7 @@ async function createOrderFromCart(
 
   const { items, subtotal, stockDeductions } = await buildOrderItemsFromEntries(
     entries,
-    { allowFrontendPrice: false },
+    { allowFrontendPrice: false, session },
   );
 
   const tax = 0;
@@ -270,12 +273,21 @@ const createOrder = catchAsync(async (req, res) => {
     razorpayPaymentId: "",
     razorpaySignature: "",
   };
-  const order = await createOrderFromCart(userId, {
-    shippingAddress,
-    addressId: req.body.addressId,
-    bodyItems: req.body.items,
-    payment,
-  });
+  const session = await mongoose.startSession();
+  let order;
+  try {
+    await session.withTransaction(async () => {
+      order = await createOrderFromCart(userId, {
+        shippingAddress,
+        addressId: req.body.addressId,
+        bodyItems: req.body.items,
+        payment,
+        session,
+      });
+    });
+  } finally {
+    await session.endSession();
+  }
   const populated = await Order.findById(order._id).populate(
     "user",
     "name email username phone",
@@ -329,29 +341,35 @@ const getOrderById = catchAsync(async (req, res) => {
 
 const cancelOrder = catchAsync(async (req, res) => {
   const userId = req.user?._id || req.user?.id;
-  const order = await Order.findById(req.params.id);
-  if (!order) throw new ExpressError(404, "Order not found.");
-  const ownerId = order.user?.toString();
-  if (ownerId !== userId?.toString()) {
-    throw new ExpressError(403, "You are not authorized to cancel this order.");
-  }
-  const locked = ["Shipped", "Delivered", "Cancelled", "Refunded"];
-  if (locked.includes(order.orderStatus)) {
-    throw new ExpressError(
-      400,
-      `This order cannot be cancelled (status: ${order.orderStatus}).`,
-    );
-  }
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: item.quantity },
-    });
-  }
-  order.orderStatus = "Cancelled";
-  order.payment.status =
-    order.payment.status === "Paid" ? "Refunded" : order.payment.status;
-  await order.save();
-  const refreshed = await Order.findById(order._id).populate(
+  const orderId = await withTransaction(async (session) => {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new ExpressError(404, "Order not found.");
+    const ownerId = order.user?.toString();
+    if (ownerId !== userId?.toString()) {
+      throw new ExpressError(
+        403,
+        "You are not authorized to cancel this order.",
+      );
+    }
+    const locked = ["Shipped", "Delivered", "Cancelled", "Refunded"];
+    if (locked.includes(order.orderStatus)) {
+      throw new ExpressError(
+        400,
+        `This order cannot be cancelled (status: ${order.orderStatus}).`,
+      );
+    }
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { stock: item.quantity } },
+        { session },
+      );
+    }
+    order.orderStatus = "Cancelled";
+    await order.save({ session });
+    return order._id;
+  });
+  const refreshed = await Order.findById(orderId).populate(
     "user",
     "name email username phone",
   );
@@ -381,26 +399,38 @@ const getAllOrders = catchAsync(async (req, res) => {
   ) {
     filter["payment.status"] = payment;
   }
-  const searchTerm = String(search).trim();
+  const searchTerm = String(search).trim().slice(0, 100);
   let userIdsForSearch = [];
   if (searchTerm) {
+    const escapedSearch = escapeRegex(searchTerm);
     const userMatches = await User.find(
       {
         $or: [
-          { name: { $regex: searchTerm, $options: "i" } },
-          { email: { $regex: searchTerm, $options: "i" } },
-          { username: { $regex: searchTerm, $options: "i" } },
+          { name: { $regex: escapedSearch, $options: "i" } },
+          { email: { $regex: escapedSearch, $options: "i" } },
+          { username: { $regex: escapedSearch, $options: "i" } },
         ],
       },
       { _id: 1 },
     ).limit(200);
     userIdsForSearch = userMatches.map((u) => u._id);
     filter.$or = [
-      { _id: { $regex: searchTerm, $options: "i" } },
-      { "shippingAddress.fullName": { $regex: searchTerm, $options: "i" } },
-      { "items.name": { $regex: searchTerm, $options: "i" } },
+      { "shippingAddress.fullName": { $regex: escapedSearch, $options: "i" } },
+      { "items.name": { $regex: escapedSearch, $options: "i" } },
       ...(userIdsForSearch.length ? [{ user: { $in: userIdsForSearch } }] : []),
     ];
+    const hexMatch = searchTerm.replace(/^TVX[-_]?/i, "");
+    if (/^[0-9a-fA-F]{6,24}$/.test(hexMatch)) {
+      filter.$or.push({
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$_id" },
+            regex: `${escapeRegex(hexMatch)}$`,
+            options: "i",
+          },
+        },
+      });
+    }
   }
   const sortMap = {
     newest: { createdAt: -1 },
@@ -459,33 +489,50 @@ const getAllOrders = catchAsync(async (req, res) => {
 
 const updateOrderStatus = catchAsync(async (req, res) => {
   const { orderStatus, note = "" } = req.body;
-  const order = await Order.findById(req.params.id);
-  if (!order) throw new ExpressError(404, "Order not found.");
-  if (!ORDER_STATUSES.includes(orderStatus)) {
-    throw new ExpressError(400, `Invalid order status: ${orderStatus}`);
-  }
-  order.orderStatus = orderStatus;
-  if (orderStatus === "Cancelled") {
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: item.quantity },
-      });
+  const orderId = await withTransaction(async (session) => {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new ExpressError(404, "Order not found.");
+    if (!ORDER_STATUSES.includes(orderStatus)) {
+      throw new ExpressError(400, `Invalid order status: ${orderStatus}`);
     }
-  }
-  const last = order.statusHistory[order.statusHistory.length - 1];
-  if (!last || last.status !== orderStatus) {
-    order.statusHistory.push({
-      status: orderStatus,
-      note,
-      timestamp: new Date(),
-    });
-  } else if (note) {
-    last.note = note;
-    last.timestamp = new Date();
-    order.markModified("statusHistory");
-  }
-  await order.save();
-  const refreshed = await Order.findById(order._id).populate(
+    const stockAlreadyRestored = ["Cancelled", "Refunded"].includes(
+      order.orderStatus,
+    );
+    if (stockAlreadyRestored && orderStatus !== order.orderStatus) {
+      throw new ExpressError(
+        400,
+        "A cancelled or refunded order cannot be reopened.",
+      );
+    }
+    if (
+      !stockAlreadyRestored &&
+      ["Cancelled", "Refunded"].includes(orderStatus)
+    ) {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: item.quantity } },
+          { session },
+        );
+      }
+    }
+    order.orderStatus = orderStatus;
+    const last = order.statusHistory[order.statusHistory.length - 1];
+    if (!last || last.status !== orderStatus) {
+      order.statusHistory.push({
+        status: orderStatus,
+        note,
+        timestamp: new Date(),
+      });
+    } else if (note) {
+      last.note = note;
+      last.timestamp = new Date();
+      order.markModified("statusHistory");
+    }
+    await order.save({ session });
+    return order._id;
+  });
+  const refreshed = await Order.findById(orderId).populate(
     "user",
     "name email username phone",
   );
@@ -496,25 +543,35 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 });
 
 const markRefunded = catchAsync(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-  if (!order) throw new ExpressError(404, "Order not found.");
-  order.payment.status = "Refunded";
-  order.orderStatus = "Refunded";
-  const last = order.statusHistory[order.statusHistory.length - 1];
-  if (!last || last.status !== "Refunded") {
-    order.statusHistory.push({
-      status: "Refunded",
-      note: req.body?.note || "Refund processed by admin",
-      timestamp: new Date(),
-    });
-  }
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: item.quantity },
-    });
-  }
-  await order.save();
-  const refreshed = await Order.findById(order._id).populate(
+  const orderId = await withTransaction(async (session) => {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new ExpressError(404, "Order not found.");
+    const stockAlreadyRestored = ["Cancelled", "Refunded"].includes(
+      order.orderStatus,
+    );
+    order.payment.status = "Refunded";
+    order.orderStatus = "Refunded";
+    const last = order.statusHistory[order.statusHistory.length - 1];
+    if (!last || last.status !== "Refunded") {
+      order.statusHistory.push({
+        status: "Refunded",
+        note: req.body?.note || "Refund processed by admin",
+        timestamp: new Date(),
+      });
+    }
+    if (!stockAlreadyRestored) {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: item.quantity } },
+          { session },
+        );
+      }
+    }
+    await order.save({ session });
+    return order._id;
+  });
+  const refreshed = await Order.findById(orderId).populate(
     "user",
     "name email username phone",
   );
@@ -752,6 +809,15 @@ const verifyRazorpayPayment = catchAsync(async (req, res) => {
         payment,
         session,
       });
+      if (
+        Math.round((order.totalAmount + Number.EPSILON) * 100) !==
+        expectedAmountPaise
+      ) {
+        throw new ExpressError(
+          409,
+          "Product prices changed during checkout. Please contact support before retrying payment.",
+        );
+      }
     });
   } catch (error) {
     if (error.code === 11000) {

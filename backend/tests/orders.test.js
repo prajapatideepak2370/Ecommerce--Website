@@ -14,7 +14,7 @@ jest.mock("express-rate-limit", () => () => (_req, _res, next) => next());
 
 const crypto = require("crypto");
 const request = require("supertest");
-const User = require("../models/User");
+const User = require("../models/user");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Category = require("../models/Category");

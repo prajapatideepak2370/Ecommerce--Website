@@ -4,6 +4,8 @@ const Order = require("../models/Order");
 const User = require("../models/user");
 const Product = require("../models/Product");
 const { audit } = require("../utils/adminAudit");
+const { escapeRegex } = require("../utils/helpers");
+const withTransaction = require("../utils/withTransaction");
 
 const ORDER_STATUSES = [
   "Pending",
@@ -61,31 +63,38 @@ const listOrders = catchAsync(async (req, res) => {
   if (payment && PAYMENT_STATUSES.includes(String(payment))) {
     filter["payment.status"] = payment;
   }
-  const searchTerm = String(search).trim();
+  const searchTerm = String(search).trim().slice(0, 100);
   if (searchTerm) {
+    const escapedSearch = escapeRegex(searchTerm);
     const userMatches = await User.find(
       {
         $or: [
-          { name: { $regex: searchTerm, $options: "i" } },
-          { email: { $regex: searchTerm, $options: "i" } },
-          { username: { $regex: searchTerm, $options: "i" } },
+          { name: { $regex: escapedSearch, $options: "i" } },
+          { email: { $regex: escapedSearch, $options: "i" } },
+          { username: { $regex: escapedSearch, $options: "i" } },
         ],
       },
       { _id: 1 },
     ).limit(200);
     const userIds = userMatches.map((u) => u._id);
     filter.$or = [
-      { "shippingAddress.fullName": { $regex: searchTerm, $options: "i" } },
-      { "shippingAddress.phone": { $regex: searchTerm, $options: "i" } },
-      { "items.name": { $regex: searchTerm, $options: "i" } },
+      { "shippingAddress.fullName": { $regex: escapedSearch, $options: "i" } },
+      { "shippingAddress.phone": { $regex: escapedSearch, $options: "i" } },
+      { "items.name": { $regex: escapedSearch, $options: "i" } },
       ...(userIds.length ? [{ user: { $in: userIds } }] : []),
     ];
-    try {
-      const hexMatch = searchTerm.replace(/^TVX[-_]?/i, "");
-      if (/^[0-9a-fA-F]{6,24}$/.test(hexMatch)) {
-        filter.$or.push({ _id: { $regex: hexMatch, $options: "i" } });
-      }
-    } catch (_) {}
+    const hexMatch = searchTerm.replace(/^TVX[-_]?/i, "");
+    if (/^[0-9a-fA-F]{6,24}$/.test(hexMatch)) {
+      filter.$or.push({
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$_id" },
+            regex: `${escapeRegex(hexMatch)}$`,
+            options: "i",
+          },
+        },
+      });
+    }
   }
   const sortMap = {
     newest: { createdAt: -1 },
@@ -152,60 +161,83 @@ const getOrder = catchAsync(async (req, res) => {
   res.json({ success: true, data: serialize(order) });
 });
 
-const restockItems = async (order) => {
+const restockItems = async (order, session) => {
   for (const item of order.items || []) {
     if (item.product) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: item.quantity },
-      });
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { stock: item.quantity } },
+        { session },
+      );
     }
   }
 };
 
 const updateStatus = catchAsync(async (req, res) => {
   const { orderStatus, note = "", paymentStatus } = req.body;
-  const order = await Order.findById(req.params.id);
-  if (!order) throw new ExpressError(404, "Order not found.");
-  if (orderStatus) {
-    if (!ORDER_STATUSES.includes(orderStatus)) {
-      throw new ExpressError(400, `Invalid order status: ${orderStatus}`);
+  let before;
+  let after;
+  const orderId = await withTransaction(async (session) => {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new ExpressError(404, "Order not found.");
+    before = {
+      orderStatus: order.orderStatus,
+      paymentStatus: order.payment.status,
+    };
+    if (orderStatus) {
+      if (!ORDER_STATUSES.includes(orderStatus)) {
+        throw new ExpressError(400, `Invalid order status: ${orderStatus}`);
+      }
+      const stockAlreadyRestored = ["Cancelled", "Refunded"].includes(
+        order.orderStatus,
+      );
+      if (stockAlreadyRestored && orderStatus !== order.orderStatus) {
+        throw new ExpressError(
+          400,
+          "A cancelled or refunded order cannot be reopened.",
+        );
+      }
+      if (
+        !stockAlreadyRestored &&
+        ["Cancelled", "Refunded"].includes(orderStatus)
+      ) {
+        await restockItems(order, session);
+      }
+      order.orderStatus = orderStatus;
+      const last = order.statusHistory[order.statusHistory.length - 1];
+      if (!last || last.status !== orderStatus) {
+        order.statusHistory.push({
+          status: orderStatus,
+          note,
+          timestamp: new Date(),
+        });
+      } else if (note) {
+        last.note = note;
+        last.timestamp = new Date();
+        order.markModified("statusHistory");
+      }
     }
-    if (["Cancelled", "Refunded"].includes(orderStatus)) {
-      if (orderStatus !== order.orderStatus) await restockItems(order);
+    if (paymentStatus && PAYMENT_STATUSES.includes(paymentStatus)) {
+      order.payment.status = paymentStatus;
     }
-    order.orderStatus = orderStatus;
-    const last = order.statusHistory[order.statusHistory.length - 1];
-    if (!last || last.status !== orderStatus) {
-      order.statusHistory.push({
-        status: orderStatus,
-        note,
-        timestamp: new Date(),
-      });
-    } else if (note) {
-      last.note = note;
-      last.timestamp = new Date();
-      order.markModified("statusHistory");
-    }
-  }
-  if (paymentStatus && PAYMENT_STATUSES.includes(paymentStatus)) {
-    order.payment.status = paymentStatus;
-  }
-  await order.save();
-  const statusPrevious = order.$locals?.__previousStatus || null;
+    await order.save({ session });
+    after = {
+      orderStatus: order.orderStatus,
+      paymentStatus: order.payment.status,
+      note,
+    };
+    return order._id;
+  });
   await audit(
     req,
     orderStatus ? "order.status.updated" : "order.payment.updated",
     "order",
-    String(order._id),
-    { orderStatus: statusPrevious },
-    {
-      orderStatus: order.orderStatus,
-      paymentStatus: order.payment.status,
-      note,
-    },
+    String(orderId),
+    before,
+    after,
     typeof note === "string" ? note : "",
   );
-  const refreshed = await Order.findById(order._id).populate(
+  const refreshed = await Order.findById(orderId).populate(
     "user",
     "name email username phone",
   );
@@ -213,39 +245,47 @@ const updateStatus = catchAsync(async (req, res) => {
 });
 
 const refundOrder = catchAsync(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-  if (!order) throw new ExpressError(404, "Order not found.");
-  const before = {
-    orderStatus: order.orderStatus,
-    paymentStatus: order.payment.status,
-  };
-  order.payment.status = "Refunded";
-  order.orderStatus = "Refunded";
-  const last = order.statusHistory[order.statusHistory.length - 1];
-  const note = req.body?.note || "Refund processed by admin";
-  if (!last || last.status !== "Refunded") {
-    order.statusHistory.push({
-      status: "Refunded",
-      note,
-      timestamp: new Date(),
-    });
-  }
-  await restockItems(order);
-  await order.save();
+  let before;
+  const orderId = await withTransaction(async (session) => {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new ExpressError(404, "Order not found.");
+    before = {
+      orderStatus: order.orderStatus,
+      paymentStatus: order.payment.status,
+    };
+    const stockAlreadyRestored = ["Cancelled", "Refunded"].includes(
+      order.orderStatus,
+    );
+    order.payment.status = "Refunded";
+    order.orderStatus = "Refunded";
+    const last = order.statusHistory[order.statusHistory.length - 1];
+    const note = req.body?.note || "Refund processed by admin";
+    if (!last || last.status !== "Refunded") {
+      order.statusHistory.push({
+        status: "Refunded",
+        note,
+        timestamp: new Date(),
+      });
+    }
+    if (!stockAlreadyRestored) {
+      await restockItems(order, session);
+    }
+    await order.save({ session });
+    return order._id;
+  });
   await audit(
     req,
     "order.refunded",
     "order",
-    String(order._id),
+    String(orderId),
     before,
     {
       orderStatus: "Refunded",
       paymentStatus: "Refunded",
-      note,
     },
-    note,
+    typeof req.body?.note === "string" ? req.body.note : "",
   );
-  const refreshed = await Order.findById(order._id).populate(
+  const refreshed = await Order.findById(orderId).populate(
     "user",
     "name email username phone",
   );

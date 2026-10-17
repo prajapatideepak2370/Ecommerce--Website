@@ -1,5 +1,5 @@
 const request = require("supertest");
-const User = require("../models/User");
+const User = require("../models/user");
 const { makeTestApp, teardown } = require("./helpers/testApp");
 
 const ADMIN = {

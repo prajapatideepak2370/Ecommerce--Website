@@ -1,5 +1,5 @@
 const request = require("supertest");
-const User = require("../models/User");
+const User = require("../models/user");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Category = require("../models/Category");
@@ -249,6 +249,13 @@ describe("Admin audit logs - order mutations write AdminAuditLog (fixes action/e
 
     const stockAfterRefund = (await Product.findById(testProduct._id)).stock;
     expect(stockAfterRefund).toBe(stockBefore);
+
+    await adm
+      .put(`/api/admin/orders/${created.body.data._id}/refund`)
+      .set("X-Requested-With", "XMLHttpRequest")
+      .send({ note: "Duplicate refund request" })
+      .expect(200);
+    expect((await Product.findById(testProduct._id)).stock).toBe(stockBefore);
 
     const auditEntry = await AdminAuditLog.findOne({
       entityType: "order",

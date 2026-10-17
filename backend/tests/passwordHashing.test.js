@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../models/user");
 
 describe("existing user password hashing", () => {
   it("verifies password changes using the configured passport-local-mongoose hasher", async () => {

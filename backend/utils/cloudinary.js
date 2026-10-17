@@ -61,6 +61,24 @@ const extractPublicId = (url) => {
   }
 };
 
+const extractRawPublicId = (url) => {
+  if (!url) return null;
+  try {
+    const pathname = new URL(url).pathname;
+    const uploadPath = "/raw/upload/";
+    const uploadIndex = pathname.indexOf(uploadPath);
+    if (uploadIndex === -1) return null;
+
+    const publicIdParts = pathname
+      .slice(uploadIndex + uploadPath.length)
+      .split("/");
+    if (/^v\d+$/.test(publicIdParts[0] || "")) publicIdParts.shift();
+    return publicIdParts.length ? publicIdParts.join("/") : null;
+  } catch {
+    return null;
+  }
+};
+
 module.exports = {
   cloudinary,
   imageStorage,
@@ -68,4 +86,5 @@ module.exports = {
   model3DStorage,
   deleteFromCloudinary,
   extractPublicId,
+  extractRawPublicId,
 };

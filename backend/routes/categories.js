@@ -9,7 +9,10 @@ const { requireAdmin } = require("../middleware/admin");
 const multer = require("multer");
 const { categoryStorage } = require("../utils/cloudinary");
 
-const uploadImage = multer({ storage: categoryStorage });
+const uploadImage = multer({
+  storage: categoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 router.get("/", catchAsync(categoryController.listCategories));
 

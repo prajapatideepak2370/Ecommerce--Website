@@ -1,4 +1,4 @@
-jest.mock("../models/User", () => ({
+jest.mock("../models/user", () => ({
   findById: jest.fn(),
   findOne: jest.fn(),
   findOneAndUpdate: jest.fn(),
@@ -11,7 +11,7 @@ jest.mock("../utils/email", () => ({
 }));
 
 const crypto = require("crypto");
-const User = require("../models/User");
+const User = require("../models/user");
 const emailService = require("../utils/email");
 const userController = require("../controllers/user");
 const { authSchemas } = require("../schema");

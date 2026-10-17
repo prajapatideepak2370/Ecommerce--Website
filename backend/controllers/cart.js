@@ -6,7 +6,11 @@ const { sendSuccess } = require("../utils/helpers");
 const getCartSummary = (cartDoc) => {
   const items = (cartDoc?.items || []).map((item) => {
     const product = item.product && typeof item.product === "object" ? item.product : null;
-    const price = product?.discountPrice && product.discountPrice > 0 ? product.discountPrice : product?.price || 0;
+    const price =
+      product?.discountPrice > 0 &&
+      product.discountPrice < product.price
+        ? product.discountPrice
+        : product?.price || 0;
     return {
       ...item.toObject?.() ?? item,
       product: product?._id || item.product,

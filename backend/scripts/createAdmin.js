@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const readline = require("readline/promises");
 const { stdin: input, stdout: output } = require("process");
 
-const User = require("../models/User");
+const User = require("../models/user");
 
 const DB_URL = process.env.ATLASDB_URL;
 
@@ -72,7 +72,7 @@ async function prompt(rl, promptText, opts = {}) {
 async function run() {
   const args = parseArgs(process.argv.slice(2));
   const hasAllFlags = Boolean(
-    args.email && args.password && (args.username || args.name),
+    args.email && args.password && args.username && args.name,
   );
 
   let rl = null;

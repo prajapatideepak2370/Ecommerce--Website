@@ -13,7 +13,10 @@ const {
 const slugify = require("slugify");
 const _ = require("lodash");
 const { audit } = require("../utils/adminAudit");
-const { deleteFromCloudinary } = require("../utils/cloudinary");
+const {
+  deleteFromCloudinary,
+  extractRawPublicId,
+} = require("../utils/cloudinary");
 
 const LOW_STOCK_THRESHOLD = () =>
   Number(process.env.LOW_STOCK_THRESHOLD || 5);
@@ -440,9 +443,9 @@ module.exports.deleteProduct = async (req, res, next) => {
     if (img && img.publicId) await deleteFromCloudinary(img.publicId, "image");
   }
   if (product.model3D && product.model3D.url) {
-    const idFromUrl = product.model3D.url
-      ? product.model3D.url.split("/").pop()
-      : null;
+    const idFromUrl =
+      product.model3D.publicId ||
+      extractRawPublicId(product.model3D.url);
     if (idFromUrl) await deleteFromCloudinary(idFromUrl, "raw");
   }
 
@@ -650,8 +653,19 @@ module.exports.upload3D = async (req, res, next) => {
   if (!format) {
     return next(new ExpressError(400, "3D model format must be glb or gltf."));
   }
-  product.model3D = { url, format };
+  const previousPublicId =
+    product.model3D?.publicId ||
+    extractRawPublicId(product.model3D?.url);
+  const model3D = {
+    url,
+    format,
+    publicId: file.public_id || file.filename || extractRawPublicId(url) || "",
+  };
+  product.model3D = model3D;
   await product.save();
+  if (previousPublicId && previousPublicId !== model3D.publicId) {
+    await deleteFromCloudinary(previousPublicId, "raw");
+  }
   const after = product.toObject();
   await audit(
     req,
@@ -674,7 +688,8 @@ module.exports.delete3D = async (req, res, next) => {
   const before = product.toObject();
   const existing = product.model3D;
   if (existing && existing.url) {
-    const idFromUrl = existing.url ? existing.url.split("/").pop() : null;
+    const idFromUrl =
+      existing.publicId || extractRawPublicId(existing.url);
     if (idFromUrl) await deleteFromCloudinary(idFromUrl, "raw");
   }
   product.model3D = undefined;

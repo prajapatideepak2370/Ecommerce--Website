@@ -11,6 +11,7 @@ const imageSchema = new Schema({
 const model3DSchema = new Schema({
   url: { type: String, required: true },
   format: { type: String, enum: ["glb", "gltf"], required: true },
+  publicId: { type: String, default: "" },
 }, { _id: false });
 
 const productSchema = new Schema({
@@ -18,7 +19,17 @@ const productSchema = new Schema({
   slug: { type: String, unique: true, index: true, trim: true },
   description: { type: String, required: true },
   price: { type: Number, required: true, min: 0 },
-  discountPrice: { type: Number, min: 0, default: null },
+  discountPrice: {
+    type: Number,
+    min: 0,
+    default: null,
+    validate: {
+      validator(value) {
+        return value == null || (value > 0 && value < this.price);
+      },
+      message: "Discount price must be greater than zero and lower than price.",
+    },
+  },
   category: { type: Schema.Types.ObjectId, ref: "Category", required: true, index: true },
   images: [imageSchema],
   model3D: model3DSchema,

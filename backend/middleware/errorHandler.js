@@ -14,6 +14,14 @@ module.exports = (err, req, res, next) => {
     message = "Invalid ID format";
   }
 
+  if (err.name === "MulterError") {
+    statusCode = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "Uploaded file exceeds the allowed size."
+        : "The uploaded file could not be processed.";
+  }
+
   if (err.code && err.code === 11000) {
     statusCode = 409;
     const key = Object.keys(err.keyPattern || {})[0] || "field";

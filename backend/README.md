@@ -112,7 +112,12 @@ errors are `{ "success": false, "error": { "code", "message" } }`.
 ## Production Notes
 
 - Set `NODE_ENV=production` (enables secure cookies and hides error stacks).
-- Use a strong `SECRET_KEY` and a separate `ADMIN_SESSION_SECRET`.
+- Set distinct `SECRET_KEY` and `ADMIN_SESSION_SECRET` values, each at least
+  32 characters long. Production startup rejects missing, placeholder, short,
+  or identical session secrets.
 - Set `CORS_ORIGIN` and `ADMIN_ORIGIN` to the deployed frontend origin(s).
 - Frontend and API should remain same-site for cookie-based auth unless the
   cookie/CSRF policy is deliberately adapted for cross-site deployment.
+- Order placement uses MongoDB transactions to keep inventory and orders
+  consistent. Use MongoDB Atlas or a local replica set; standalone MongoDB
+  deployments do not support these transactions.

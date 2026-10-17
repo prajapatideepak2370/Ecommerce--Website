@@ -9,11 +9,13 @@ const DEMO_PRODUCT_IDS = new Set(demoProducts.map((product) => product._id));
 
 const buildCartTotals = (items) => {
   const subtotal = items.reduce((sum, item) => {
+    const regularPrice = Number(item.productMeta?.price || 0);
+    const discountPrice = Number(item.productMeta?.discountPrice || 0);
     const price = Number(
       item.unitPrice ||
-        item.productMeta?.discountPrice ||
-        item.productMeta?.price ||
-        0,
+        (discountPrice > 0 && discountPrice < regularPrice
+          ? discountPrice
+          : regularPrice),
     );
     return sum + price * Number(item.quantity || 1);
   }, 0);
@@ -103,11 +105,12 @@ export const addToCart = createAsyncThunk(
     const productId = String(product || "");
     const addLocalItem = () => {
       const current = getState().cart.items || [];
-      const unitPrice = Number(
-        productMeta?.discountPrice && productMeta.discountPrice > 0
-          ? productMeta.discountPrice
-          : productMeta?.price || 0,
-      );
+      const regularPrice = Number(productMeta?.price || 0);
+      const discountPrice = Number(productMeta?.discountPrice || 0);
+      const unitPrice =
+        discountPrice > 0 && discountPrice < regularPrice
+          ? discountPrice
+          : regularPrice;
       const itemKey = productMeta?.slug || productId;
       const existingIndex = current.findIndex(
         (item) =>
@@ -151,14 +154,6 @@ export const addToCart = createAsyncThunk(
       await cartApi.addItem({ product, quantity });
       return await dispatch(fetchCart()).unwrap();
     } catch (err) {
-      if (
-        !!productMeta ||
-        err?.response?.status === 401 ||
-        err?.response?.status === 404
-      ) {
-        return addLocalItem();
-      }
-
       return rejectWithValue(getErrorMessage(err, "Could not add to cart"));
     }
   },
@@ -187,25 +182,6 @@ export const updateQty = createAsyncThunk(
       await cartApi.updateQty(itemId, quantity);
       return await dispatch(fetchCart()).unwrap();
     } catch (err) {
-      if (String(itemId).startsWith("demo-")) {
-        const current = getState().cart.items || [];
-        const updated = current
-          .map((item) =>
-            item._id === itemId
-              ? {
-                  ...item,
-                  quantity: Math.max(1, Number(quantity || 1)),
-                  lineTotal:
-                    Number(item.unitPrice || item.productMeta?.price || 0) *
-                    Math.max(1, Number(quantity || 1)),
-                }
-              : item,
-          )
-          .filter((item) => Number(item.quantity || 0) > 0);
-        const payload = { items: updated, ...buildCartTotals(updated) };
-        writeLocalCart(payload);
-        return payload;
-      }
       return rejectWithValue(getErrorMessage(err, "Could not update cart"));
     }
   },
@@ -223,15 +199,6 @@ export const removeItem = createAsyncThunk(
       await cartApi.removeItem(itemId);
       return await dispatch(fetchCart()).unwrap();
     } catch (err) {
-      if (String(itemId).startsWith("demo-")) {
-        const current = getState().cart.items || [];
-        const updated = current.filter(
-          (item) => item._id !== itemId && item.product !== itemId,
-        );
-        const payload = { items: updated, ...buildCartTotals(updated) };
-        writeLocalCart(payload);
-        return payload;
-      }
       return rejectWithValue(getErrorMessage(err, "Could not remove item"));
     }
   },
@@ -243,10 +210,15 @@ export const clearCart = createAsyncThunk(
     try {
       await cartApi.clear();
       localStorage.removeItem(CART_STORAGE_KEY);
-      return { items: [] };
+      return {
+        items: [],
+        subtotal: 0,
+        tax: 0,
+        shippingFee: 0,
+        totalAmount: 0,
+      };
     } catch (err) {
-      localStorage.removeItem(CART_STORAGE_KEY);
-      return { items: [], subtotal: 0, tax: 0, shippingFee: 0, totalAmount: 0 };
+      return rejectWithValue(getErrorMessage(err, "Could not clear cart"));
     }
   },
 );

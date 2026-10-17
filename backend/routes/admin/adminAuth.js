@@ -76,6 +76,7 @@ router.post(
   "/login",
   loginLimiter,
   adminLoginBruteForce,
+  csrfHeaderCheck,
   validate(adminAuthSchemas.login),
   catchAsync(normalizeAdminLogin),
   authenticateAdmin,

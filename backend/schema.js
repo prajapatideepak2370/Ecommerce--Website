@@ -98,7 +98,7 @@ module.exports.productSchemas = {
     slug: Joi.string().min(1).max(255),
     description: Joi.string().min(10).required(),
     price: Joi.number().positive().required(),
-    discountPrice: Joi.number().min(0).optional(),
+    discountPrice: Joi.number().positive().less(Joi.ref("price")).optional(),
     category: Joi.string().required(),
     images: Joi.array().items(
       Joi.object({
@@ -109,6 +109,7 @@ module.exports.productSchemas = {
     model3D: Joi.object({
       url: Joi.string().uri().required(),
       format: Joi.string().valid("glb", "gltf").required(),
+      publicId: Joi.string().allow(""),
     }),
     stock: Joi.number().integer().min(0).required(),
     brand: Joi.string().allow("", null).max(100),
@@ -129,7 +130,7 @@ module.exports.productSchemas = {
     slug: Joi.string().min(1).max(255),
     description: Joi.string().min(10),
     price: Joi.number().positive(),
-    discountPrice: Joi.number().min(0),
+    discountPrice: Joi.number().positive(),
     category: Joi.string(),
     images: Joi.array().items(
       Joi.object({
@@ -140,6 +141,7 @@ module.exports.productSchemas = {
     model3D: Joi.object({
       url: Joi.string().uri().required(),
       format: Joi.string().valid("glb", "gltf").required(),
+      publicId: Joi.string().allow(""),
     }),
     stock: Joi.number().integer().min(0),
     brand: Joi.string().allow("", null).max(100),
@@ -345,7 +347,7 @@ module.exports.adminCatalogSchemas = {
     slug: Joi.string().min(1).max(255),
     description: Joi.string().min(10).required(),
     price: Joi.number().positive().required(),
-    discountPrice: Joi.number().min(0),
+    discountPrice: Joi.number().positive().less(Joi.ref("price")),
     category: Joi.string().required(),
     stock: Joi.number().integer().min(0).required(),
     brand: Joi.string().allow("", null).max(100),
@@ -366,7 +368,7 @@ module.exports.adminCatalogSchemas = {
     slug: Joi.string().min(1).max(255),
     description: Joi.string().min(10),
     price: Joi.number().positive(),
-    discountPrice: Joi.number().min(0),
+    discountPrice: Joi.number().positive(),
     category: Joi.string(),
     stock: Joi.number().integer().min(0),
     brand: Joi.string().allow("", null).max(100),

@@ -1,4 +1,4 @@
-jest.mock("../models/User", () => {
+jest.mock("../models/user", () => {
   function MockUser(values) {
     Object.assign(this, values);
   }
@@ -12,7 +12,7 @@ jest.mock("../models/User", () => {
   return MockUser;
 });
 
-const User = require("../models/User");
+const User = require("../models/user");
 const { GoogleAuthError, resolveGoogleUser } = require("../utils/googleAuth");
 
 const verifiedProfile = (overrides = {}) => ({

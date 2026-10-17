@@ -29,12 +29,15 @@ const adminCategoriesRouter = require("./routes/admin/adminCategories");
 const adminCatalogRouter = require("./routes/admin/adminCatalog");
 const adminOrdersRouter = require("./routes/admin/adminOrders");
 const { adminPassport, GENERIC_INVALID } = require("./utils/adminPassport");
+const requestOriginCheck = require("./middleware/csrf");
+const { assertProductionSessionSecrets } = require("./utils/config");
 const {
   requireAdminAuth,
   requireAdminAuthOr404ForUnknown,
 } = require("./middleware/adminAuth");
 
 function buildApp(dbClientPromise) {
+  assertProductionSessionSecrets();
   const app = express();
 
   app.set("trust proxy", 1);
@@ -91,6 +94,8 @@ function buildApp(dbClientPromise) {
       allowedHeaders: ["Content-Type", "Accept", "X-Requested-With"],
     }),
   );
+  app.use("/api/v1", requestOriginCheck(allCorsOrigins));
+  app.use("/api/admin", requestOriginCheck(allCorsOrigins));
 
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));

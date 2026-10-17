@@ -1,6 +1,6 @@
 const Category = require("../models/Category");
 const ExpressError = require("../utils/ExpressError");
-const { sendSuccess } = require("../utils/helpers");
+const { sendSuccess, escapeRegex } = require("../utils/helpers");
 
 module.exports.listCategories = async (req, res) => {
   const categories = await Category.find({ isActive: true }).sort({ name: 1 }).lean();
@@ -23,7 +23,9 @@ module.exports.createCategory = async (req, res, next) => {
     return next(new ExpressError(400, "Category name is required."));
   }
 
-  const exists = await Category.findOne({ name: new RegExp(`^${trimmedName}$`, "i") }).lean();
+  const exists = await Category.findOne({
+    name: new RegExp(`^${escapeRegex(trimmedName)}$`, "i"),
+  }).lean();
   if (exists) {
     return next(new ExpressError(409, "A category with this name already exists."));
   }
