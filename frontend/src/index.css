@@ -117,3 +117,89 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+.site-navbar {
+  --navbar-background: #f0eee9;
+  --navbar-border-color: #d8d4cc;
+  --navbar-text-color: #292a28;
+  --navbar-muted-color: #5c5a54;
+  --navbar-hover-background: rgba(0, 0, 0, 0.05);
+  --navbar-active-color: #285f5d;
+  --navbar-active-background: rgba(40, 95, 93, 0.1);
+  background-color: var(--navbar-background);
+  border-color: var(--navbar-border-color);
+}
+
+:root[data-theme="dark"] .site-navbar {
+  --navbar-background: #090a0f;
+  --navbar-border-color: #262935;
+  --navbar-text-color: #f8f9fc;
+  --navbar-muted-color: #b0b6c8;
+  --navbar-hover-background: rgba(255, 255, 255, 0.08);
+  --navbar-active-color: #a7f3d0;
+  --navbar-active-background: rgba(0, 245, 212, 0.12);
+}
+
+.site-navbar .navbar-muted {
+  color: var(--navbar-muted-color);
+}
+
+.site-navbar .navbar-control,
+.site-navbar .navbar-nav-link {
+  color: var(--navbar-text-color);
+}
+
+.site-navbar .navbar-control:hover,
+.site-navbar .navbar-nav-link:hover {
+  background-color: var(--navbar-hover-background);
+}
+
+.site-navbar .navbar-active {
+  color: var(--navbar-active-color);
+  background-color: var(--navbar-active-background);
+}
+
+.site-navbar .navbar-border,
+.site-navbar-submenu {
+  border-color: var(--navbar-border-color);
+}
+
+.site-navbar-submenu {
+  --navbar-background: #f0eee9;
+  --navbar-border-color: #d8d4cc;
+  --navbar-text-color: #292a28;
+  --navbar-hover-background: rgba(0, 0, 0, 0.05);
+  --navbar-active-color: #285f5d;
+  --navbar-active-background: rgba(40, 95, 93, 0.1);
+  background-color: var(--navbar-background);
+}
+
+:root[data-theme="dark"] .site-navbar-submenu {
+  --navbar-background: #090a0f;
+  --navbar-border-color: #262935;
+  --navbar-text-color: #f8f9fc;
+  --navbar-hover-background: rgba(255, 255, 255, 0.08);
+  --navbar-active-color: #a7f3d0;
+  --navbar-active-background: rgba(0, 245, 212, 0.12);
+}
+
+.site-navbar-submenu .navbar-nav-link {
+  color: var(--navbar-text-color);
+}
+
+.site-navbar-submenu .navbar-nav-link:hover {
+  background-color: var(--navbar-hover-background);
+}
+
+.site-navbar-submenu .navbar-active {
+  color: var(--navbar-active-color);
+  background-color: var(--navbar-active-background);
+}
+
+.site-navbar-submenu .navbar-divider {
+  background-color: var(--navbar-border-color);
+}
+
+.site-navbar-submenu .navbar-action {
+  color: var(--navbar-active-color);
+}

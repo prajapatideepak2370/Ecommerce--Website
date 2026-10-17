@@ -39,6 +39,12 @@ describe("request origin check", () => {
     expect(next).toHaveBeenCalledWith();
   });
 
+  it("allows originless XMLHttpRequest API clients", () => {
+    const next = run("POST", { "x-requested-with": "XMLHttpRequest" });
+
+    expect(next).toHaveBeenCalledWith();
+  });
+
   it("rejects originless form submissions", () => {
     const next = run("POST", {
       "content-type": "application/x-www-form-urlencoded",

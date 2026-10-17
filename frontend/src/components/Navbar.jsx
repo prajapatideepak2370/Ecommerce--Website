@@ -23,6 +23,7 @@ import {
 import { selectCartCount } from "../store/cartSlice.js";
 import { cn } from "../utils/cn.js";
 import { getThemeMode, setThemeMode } from "../utils/theme.js";
+import BrandLogo from "./BrandLogo.jsx";
 
 const navLinks = [
   { to: "/shop", label: "Shop" },
@@ -75,19 +76,15 @@ export default function Navbar() {
     themeMode === "system" ? Monitor : themeMode === "light" ? Sun : Moon;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink-800/70 bg-ink-950/70 backdrop-blur-md">
+    <header className="site-navbar sticky top-0 z-50 border-b backdrop-blur-md">
       <div className="page-container flex h-16 items-center gap-3">
         <Link to="/" className="flex items-center gap-2 group shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent grid place-items-center shadow-glow">
-            <span className="font-display font-bold text-ink-950 text-lg">
-              T³
-            </span>
-          </div>
+          <BrandLogo className="h-11 w-11 rounded-lg" />
           <div className="flex flex-col leading-tight">
             <span className="font-display text-lg font-semibold tracking-tight gradient-text">
               TRYVOXEL³ᴰ
             </span>
-            <span className="hidden sm:block text-[10px] uppercase tracking-[0.22em] text-ink-400">
+            <span className="navbar-muted hidden sm:block text-[10px] uppercase tracking-[0.22em]">
               Experiment • Create • Experience
             </span>
           </div>
@@ -100,10 +97,10 @@ export default function Navbar() {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "px-3 py-2 text-sm rounded-md transition-colors",
+                  "navbar-nav-link px-3 py-2 text-sm rounded-md transition-colors",
                   isActive
-                    ? "text-brand-300 bg-brand-500/10"
-                    : "text-ink-200 hover:text-ink-50 hover:bg-ink-800/50",
+                    ? "navbar-active"
+                    : "",
                 )
               }
             >
@@ -116,7 +113,7 @@ export default function Navbar() {
 
         <button
           aria-label="Search"
-          className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50"
+          className="navbar-control h-10 w-10 grid place-items-center rounded-lg"
           onClick={() => navigate("/shop")}
         >
           <Search size={18} />
@@ -126,7 +123,7 @@ export default function Navbar() {
           aria-label={`Theme: ${themeMode}`}
           title={`Theme: ${themeMode}`}
           onClick={cycleTheme}
-          className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-brand-300 hover:bg-ink-800/50"
+          className="navbar-control h-10 w-10 grid place-items-center rounded-lg"
         >
           <ThemeIcon size={18} />
         </button>
@@ -134,7 +131,7 @@ export default function Navbar() {
         <Link
           to="/cart"
           aria-label="Cart"
-          className="relative h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50"
+          className="navbar-control relative h-10 w-10 grid place-items-center rounded-lg"
         >
           <ShoppingBag size={18} />
           {cartCount > 0 && (
@@ -151,7 +148,7 @@ export default function Navbar() {
               e.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            className="h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:text-ink-50 hover:bg-ink-800/50 border border-ink-800"
+            className="navbar-control navbar-border h-10 w-10 grid place-items-center rounded-lg border"
           >
             <User size={18} />
           </button>
@@ -212,7 +209,7 @@ export default function Navbar() {
         </div>
 
         <button
-          className="md:hidden h-10 w-10 grid place-items-center rounded-lg text-ink-200 hover:bg-ink-800/50"
+          className="navbar-control md:hidden h-10 w-10 grid place-items-center rounded-lg"
           aria-label="Menu"
           onClick={() => setOpen((v) => !v)}
         >
@@ -221,7 +218,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-ink-800 bg-ink-950/95 backdrop-blur-md">
+        <div className="site-navbar-submenu md:hidden border-t">
           <nav className="page-container py-4 flex flex-col gap-1">
             {navLinks.map((l) => (
               <NavLink
@@ -230,36 +227,36 @@ export default function Navbar() {
                 onClick={closeMenus}
                 className={({ isActive }) =>
                   cn(
-                    "px-3 py-2 rounded-md text-sm",
+                    "navbar-nav-link px-3 py-2 rounded-md text-sm",
                     isActive
-                      ? "bg-brand-500/10 text-brand-200"
-                      : "text-ink-100",
+                      ? "navbar-active"
+                      : "",
                   )
                 }
               >
                 {l.label}
               </NavLink>
             ))}
-            <div className="h-px bg-ink-800 my-2" />
+            <div className="navbar-divider h-px my-2" />
             {isAuthenticated ? (
               <>
                 <Link
                   to="/account"
                   onClick={closeMenus}
-                  className="px-3 py-2 rounded-md text-sm"
+                  className="navbar-nav-link px-3 py-2 rounded-md text-sm"
                 >
                   My Account
                 </Link>
                 <Link
                   to="/account/orders"
                   onClick={closeMenus}
-                  className="px-3 py-2 rounded-md text-sm"
+                  className="navbar-nav-link px-3 py-2 rounded-md text-sm"
                 >
                   My Orders
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-left px-3 py-2 rounded-md text-sm text-rose-300"
+                  className="text-left px-3 py-2 rounded-md text-sm text-rose-700"
                 >
                   Log out
                 </button>
@@ -269,14 +266,14 @@ export default function Navbar() {
                 <Link
                   to="/login"
                   onClick={closeMenus}
-                  className="px-3 py-2 rounded-md text-sm"
+                  className="navbar-nav-link px-3 py-2 rounded-md text-sm"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/register"
                   onClick={closeMenus}
-                  className="px-3 py-2 rounded-md text-sm text-brand-300"
+                  className="navbar-action px-3 py-2 rounded-md text-sm"
                 >
                   Create account
                 </Link>

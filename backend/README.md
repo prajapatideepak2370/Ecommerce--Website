@@ -32,7 +32,7 @@ backend/
 ├── routes/          /api/v1 + /api/admin route definitions
 ├── middleware/      auth, validation, error handling, sanitization
 ├── utils/           cloudinary, razorpay, email, helpers, passport
-├── seeders/         seed.js (categories + sample products + admin)
+├── seeders/         seed.js (development categories + sample products + admin)
 ├── scripts/         createAdmin.js, seedAdmin.js
 ├── tests/           Jest + Supertest suites
 ├── schema.js        Joi validation schemas
@@ -55,13 +55,16 @@ Key variables: `NODE_ENV`, `PORT`, `HOST`, `ATLASDB_URL`, `SECRET_KEY`,
 
 1. Create a MongoDB (Atlas or local) database.
 2. Put the connection string in `ATLASDB_URL`.
-3. Seed initial data:
+3. For development only, seed sample data:
 
    ```bash
-   npm run seed          # categories, sample products, admin
-   npm run seed-admin    # seed/promote the admin user only
-   npm run create-admin  # interactively create an admin user
+   npm run seed          # development categories, sample products, admin
    ```
+
+   `npm run seed` refuses to run when `NODE_ENV=production`. Production
+   catalogs should be populated through the admin console. Use `npm run
+   seed-admin` or `npm run create-admin` only for an intentional initial admin
+   setup; neither script promotes or changes an existing non-admin account.
 
 Sessions are stored in MongoDB via `connect-mongo` (`sessions` and
 `adminSessions` collections).
@@ -116,6 +119,9 @@ errors are `{ "success": false, "error": { "code", "message" } }`.
   32 characters long. Production startup rejects missing, placeholder, short,
   or identical session secrets.
 - Set `CORS_ORIGIN` and `ADMIN_ORIGIN` to the deployed frontend origin(s).
+- Set `ATLASDB_URL` in the deployment secret manager to the intended production
+  database. Do not reuse the local development URI or run development seed data
+  against production.
 - Frontend and API should remain same-site for cookie-based auth unless the
   cookie/CSRF policy is deliberately adapted for cross-site deployment.
 - Order placement uses MongoDB transactions to keep inventory and orders

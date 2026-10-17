@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { useAdminAuth } from "../store/AuthContext.jsx";
+import BrandLogo from "../../components/BrandLogo.jsx";
 
 export default function AdminLogin() {
   const { login, authError } = useAdminAuth();
@@ -39,8 +40,11 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-ink-950">
       <div className="hidden lg:flex relative items-center justify-center p-12 overflow-hidden border-r border-ink-800 bg-[radial-gradient(ellipse_at_top,rgba(101,94,255,0.18),transparent_60%),radial-gradient(ellipse_at_bottom_right,rgba(7,209,199,0.15),transparent_60%)]">
-        <div className="absolute top-12 left-12 font-display text-xs uppercase tracking-[0.3em] text-ink-500">
-          TRYVOXEL³ Console
+        <div className="absolute top-8 left-8 flex items-center gap-3">
+          <BrandLogo className="h-14 w-14 rounded-lg" />
+          <span className="font-display text-xs uppercase tracking-[0.3em] text-ink-300">
+            Console
+          </span>
         </div>
         <div className="max-w-md space-y-6 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-200 text-xs uppercase tracking-[0.2em]">
@@ -62,9 +66,7 @@ export default function AdminLogin() {
       <div className="flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md space-y-6">
           <div className="lg:hidden flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-accent grid place-items-center">
-              <span className="font-display font-bold text-ink-950">T³</span>
-            </div>
+            <BrandLogo className="h-12 w-12 rounded-lg" />
             <div>
               <div className="font-display font-semibold gradient-text">
                 TRYVOXEL³

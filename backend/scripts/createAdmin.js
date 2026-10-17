@@ -130,17 +130,12 @@ async function run() {
     });
 
     if (existing) {
-      existing.role = "admin";
-      existing.isBlocked = false;
-      if (name) existing.name = name;
-      if (phone !== undefined) existing.phone = phone;
-      if (existing.email !== email) existing.email = email;
-      if (existing.username !== username) existing.username = username;
-      await existing.setPassword(password);
-      await existing.save();
-      console.log(
-        `Updated existing user → admin: ${existing.email} / username=${existing.username}`,
-      );
+      if (existing.role !== "admin") {
+        throw new Error(
+          "The requested email or username belongs to a non-admin account. Choose a unique admin identity.",
+        );
+      }
+      console.log("An admin account already matches; no account changes made.");
     } else {
       const user = new User({
         name,

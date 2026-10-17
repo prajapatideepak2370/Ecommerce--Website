@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Instagram, Youtube } from "lucide-react";
+import BrandLogo from "./BrandLogo.jsx";
 
 export default function Footer() {
   return (
@@ -7,11 +8,7 @@ export default function Footer() {
       <div className="page-container py-12 grid gap-10 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2 mb-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent grid place-items-center">
-              <span className="font-display font-bold text-ink-950 text-lg">
-                T³
-              </span>
-            </div>
+            <BrandLogo className="h-10 w-10 rounded-lg" />
             <div>
               <div className="font-display text-lg font-semibold gradient-text">
                 TRYVOXEL³ᴰ

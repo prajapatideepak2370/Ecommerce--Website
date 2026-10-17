@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { useAdminAuth } from "../store/AuthContext.jsx";
 import { cn } from "../../utils/cn.js";
+import BrandLogo from "../../components/BrandLogo.jsx";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -47,11 +48,7 @@ export default function AdminConsoleLayout() {
       >
         <div className="flex items-center justify-between md:block md:mb-8">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent grid place-items-center">
-              <span className="font-display font-bold text-ink-950 text-lg">
-                T³
-              </span>
-            </div>
+            <BrandLogo className="h-11 w-11 rounded-lg" />
             <div>
               <div className="font-display font-semibold gradient-text">
                 TRYVOXEL³

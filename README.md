@@ -748,15 +748,18 @@ MongoDB Atlas, Cloudinary, authentication, and application settings in the
 backend environment. Set the customer and admin API URLs in the frontend
 environment.
 
-## 5. Seed Initial Data
+## 5. Seed Development Data
 
-Run the seed script from the `backend/` directory:
+For local development only, run the seed script from the `backend/` directory:
 
 ```bash
 npm run seed
 ```
 
-The seed script can create/promote the initial administrator and populate the database with TRYVOXEL categories and sample products.
+This creates sample categories and products and may create the initial
+administrator. It refuses to run with `NODE_ENV=production`. Populate a
+production catalog through the admin console instead. The seed scripts do not
+promote or modify an existing non-admin account.
 
 ## 6. Start the Backend
 

@@ -7,6 +7,12 @@ const Product = require("../models/Product");
 
 const DB_URL = process.env.ATLASDB_URL;
 
+function assertSeedAllowed(env = process.env) {
+  if (env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed development sample data in production.");
+  }
+}
+
 if (!DB_URL) {
   console.error("FATAL: ATLASDB_URL is not set. Check your .env file.");
   process.exit(1);
@@ -21,16 +27,15 @@ async function connectDB() {
 }
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL || "admin@tryvoxel.com";
+  const email = (process.env.ADMIN_EMAIL || "admin@tryvoxel.com").toLowerCase();
   const existing = await User.findOne({ email });
   if (existing) {
-    console.log("Admin user already exists:", email);
     if (existing.role !== "admin") {
-      existing.role = "admin";
-      existing.isBlocked = false;
-      await existing.save();
-      console.log("Promoted existing user to admin");
+      throw new Error(
+        "The configured admin email belongs to a non-admin account. Refusing to change its role.",
+      );
     }
+    console.log("Admin user already exists; no changes made.");
     return existing;
   }
   const password = process.env.ADMIN_PASSWORD;
@@ -488,6 +493,7 @@ async function seedCategories() {
 }
 
 async function seedProducts(categories) {
+  assertSeedAllowed();
   const count = await Product.estimatedDocumentCount();
   if (count >= 20) {
     console.log(
@@ -514,10 +520,12 @@ module.exports = {
   seedProducts,
   buildProducts,
   CATEGORY_SEEDS,
+  assertSeedAllowed,
 };
 
 async function main() {
   try {
+    assertSeedAllowed();
     await connectDB();
     await seedAdmin();
     const cats = await seedCategories();

@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { register } from "../store/authSlice.js";
 import { Eye, EyeOff } from "lucide-react";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
+import { completePendingBuyNow } from "../utils/buyNow.js";
 
 export default function Register() {
   const dispatch = useDispatch();
@@ -31,7 +32,11 @@ export default function Register() {
     try {
       await dispatch(register(form)).unwrap();
       toast.success("Account created. Welcome to TRYVOXEL³!");
-      navigate(from, { replace: true });
+      const hasPendingPurchase = await completePendingBuyNow(dispatch);
+      navigate(hasPendingPurchase ? "/checkout" : from, {
+        replace: true,
+        state: hasPendingPurchase ? undefined : location.state?.from?.state,
+      });
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Registration failed");
     }

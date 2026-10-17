@@ -1,12 +1,64 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Box, Phone } from "lucide-react";
+import { ArrowRight, Sparkles, Box, Phone, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { productApi } from "../api/endpoints.js";
-import { demoProducts } from "../data/demoProducts.js";
+import { selectIsAuthenticated } from "../store/authSlice.js";
+import {
+  addProductToCartForCheckout,
+  completePendingBuyNow,
+  savePendingBuyNow,
+} from "../utils/buyNow.js";
+import { getErrorMessage } from "../api/client.js";
 
 export default function Home() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [buyingProductId, setBuyingProductId] = useState("");
+
+  const handleBuyNow = async (product) => {
+    if (buyingProductId) return;
+    if (!isAuthenticated) {
+      try {
+        savePendingBuyNow(product);
+        navigate("/login", {
+          state: { from: { pathname: "/checkout" } },
+        });
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Could not start checkout."));
+      }
+      return;
+    }
+
+    setBuyingProductId(String(product._id));
+    try {
+      await addProductToCartForCheckout(dispatch, product);
+      navigate("/checkout");
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, `Could not buy ${product.name}. Please try again.`),
+      );
+    } finally {
+      setBuyingProductId("");
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    completePendingBuyNow(dispatch)
+      .then((hasPendingPurchase) => {
+        if (hasPendingPurchase) navigate("/checkout", { replace: true });
+      })
+      .catch((error) => {
+        toast.error(
+          getErrorMessage(error, "Could not resume your selected purchase."),
+        );
+      });
+  }, [dispatch, isAuthenticated, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -32,14 +84,6 @@ export default function Home() {
         } catch (error) {
           console.error("Failed to load catalog products:", error);
         }
-      }
-
-      if (products.length < 3) {
-        const knownIds = new Set(products.map((product) => product._id));
-        products = [
-          ...products,
-          ...demoProducts.filter((product) => !knownIds.has(product._id)),
-        ].slice(0, 4);
       }
 
       if (mounted) setFeaturedProducts(products);
@@ -225,6 +269,7 @@ export default function Home() {
               product.discountPrice && product.discountPrice > 0
                 ? product.discountPrice
                 : product.price;
+            const soldOut = Number(product.stock) <= 0;
             return (
               <div
                 key={product._id}
@@ -254,13 +299,28 @@ export default function Home() {
                     </div>
                   </div>
                 </Link>
-                <Link
-                  to={`/jelly-lab/${product.slug}`}
-                  state={{ product, returnTo: "/" }}
-                  className="btn-ghost mt-3 w-full !py-2 text-sm"
-                >
-                  <Sparkles size={14} /> Try Jelly Lab
-                </Link>
+                <div className="mt-3 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleBuyNow(product)}
+                    disabled={Boolean(buyingProductId) || soldOut}
+                    className="btn-primary h-9 w-full !px-2 !py-2 text-xs whitespace-nowrap sm:!px-4 sm:text-sm"
+                  >
+                    <ShoppingBag size={14} className="shrink-0" />
+                    {soldOut
+                      ? "Sold out"
+                      : buyingProductId === String(product._id)
+                        ? "Adding..."
+                        : "Buy Now"}
+                  </button>
+                  <Link
+                    to={`/jelly-lab/${product.slug}`}
+                    state={{ product, returnTo: "/" }}
+                    className="btn-ghost h-9 w-full !px-2 !py-2 text-xs whitespace-nowrap sm:!px-4 sm:text-sm"
+                  >
+                    <Sparkles size={14} className="shrink-0" /> Try Jelly Lab
+                  </Link>
+                </div>
               </div>
             );
           })}

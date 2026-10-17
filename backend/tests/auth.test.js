@@ -34,6 +34,21 @@ describe("POST /api/v1/users/register", () => {
     expect(res.headers["set-cookie"]).toBeDefined();
   });
 
+  it("does not allow registration to assign administrator privileges", async () => {
+    const res = await agent()
+      .post("/api/v1/users/register")
+      .send({
+        ...USER_A,
+        username: "alice-admin-attempt",
+        email: "alice-admin-attempt@tryvoxel.test",
+        role: "admin",
+        isBlocked: true,
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
   it("rejects duplicate email with 409", async () => {
     const res = await agent()
       .post("/api/v1/users/register")
@@ -138,7 +153,9 @@ describe("POST /api/v1/users/logout", () => {
       .post("/api/v1/users/login")
       .send({ username: USER_A.username, password: USER_A.password });
     expect((await a.get("/api/v1/users/me")).statusCode).toBe(200);
-    const logout = await a.post("/api/v1/users/logout");
+    const logout = await a
+      .post("/api/v1/users/logout")
+      .set("X-Requested-With", "XMLHttpRequest");
     expect(logout.statusCode).toBe(200);
     expect(logout.body.data.loggedOut).toBe(true);
     expect((await a.get("/api/v1/users/me")).statusCode).toBe(401);
@@ -180,6 +197,7 @@ describe("Addresses CRUD /api/v1/users/addresses", () => {
       label: "Work",
       line1: "7th floor TRYVOXEL Tower",
       line2: "",
+      isDefault: false,
     });
     expect(r2.statusCode).toBe(201);
     const a2 = r2.body.data;
@@ -204,7 +222,9 @@ describe("Addresses CRUD /api/v1/users/addresses", () => {
     expect(defs[0].label).toBe("Work HQ");
 
     // delete a1
-    const del = await a.delete(`/api/v1/users/addresses/${a1._id}`);
+    const del = await a
+      .delete(`/api/v1/users/addresses/${a1._id}`)
+      .set("X-Requested-With", "XMLHttpRequest");
     expect(del.statusCode).toBe(200);
     expect(del.body.data.deleted).toBe(true);
     const finalList = await a.get("/api/v1/users/addresses");
@@ -212,9 +232,9 @@ describe("Addresses CRUD /api/v1/users/addresses", () => {
     expect(finalList.body.data[0].isDefault).toBe(true);
 
     // delete 404 on unknown id
-    const badDel = await a.delete(
-      "/api/v1/users/addresses/000000000000000000000000",
-    );
+    const badDel = await a
+      .delete("/api/v1/users/addresses/000000000000000000000000")
+      .set("X-Requested-With", "XMLHttpRequest");
     expect(badDel.statusCode).toBe(404);
   });
 

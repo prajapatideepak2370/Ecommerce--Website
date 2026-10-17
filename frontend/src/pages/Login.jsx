@@ -1,11 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import { login, selectIsAuthenticated, selectAuthLoading } from "../store/authSlice.js";
 import { fetchCart } from "../store/cartSlice.js";
 import { Eye, EyeOff } from "lucide-react";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
+import BrandLogo from "../components/BrandLogo.jsx";
+import { completePendingBuyNow } from "../utils/buyNow.js";
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -13,11 +15,16 @@ export default function Login() {
   const location = useLocation();
   const authLoading = useSelector(selectAuthLoading);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const wasAuthenticatedOnMount = useRef(isAuthenticated);
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ username: "", password: "" });
   const from = location.state?.from?.pathname || "/";
 
-  if (isAuthenticated) navigate(from, { replace: true });
+  useEffect(() => {
+    if (wasAuthenticatedOnMount.current) {
+      navigate(from, { replace: true });
+    }
+  }, [from, navigate]);
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -27,7 +34,11 @@ export default function Login() {
       await dispatch(login(form)).unwrap();
       await dispatch(fetchCart());
       toast.success("Welcome back!");
-      navigate(from, { replace: true });
+      const hasPendingPurchase = await completePendingBuyNow(dispatch);
+      navigate(hasPendingPurchase ? "/checkout" : from, {
+        replace: true,
+        state: hasPendingPurchase ? undefined : location.state?.from?.state,
+      });
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Login failed");
     }
@@ -37,6 +48,7 @@ export default function Login() {
     <div className="page-container min-h-[80vh] grid place-items-center py-14">
       <div className="w-full max-w-md card p-8">
         <div className="text-center mb-6">
+          <BrandLogo className="mx-auto mb-4 h-20 w-20 rounded-xl" />
           <div className="font-display text-2xl font-semibold gradient-text">Welcome back</div>
           <p className="text-sm text-ink-400 mt-1">Log in to TRYVOXEL³</p>
         </div>
@@ -74,7 +86,13 @@ export default function Login() {
         <GoogleAuthButton />
         <div className="mt-6 text-center text-sm text-ink-400">
           New here?{" "}
-          <Link to="/register" className="text-brand-300 link-underline">Create an account</Link>
+          <Link
+            to="/register"
+            state={location.state}
+            className="text-brand-300 link-underline"
+          >
+            Create an account
+          </Link>
         </div>
       </div>
     </div>
