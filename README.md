@@ -163,7 +163,7 @@ TRYVOXEL/
 │   ├── scripts/                  # create-admin / seed-admin
 │   ├── tests/                    # Jest + Supertest suites
 │   ├── schema.js                 # Joi validation schemas (validators)
-│   ├── app.js                    # Express app factory (middleware + routes)
+│   ├── appFactory.js             # Express app factory (middleware + routes)
 │   ├── server.js                 # DB connection + HTTP listener
 │   ├── .env.example
 │   ├── package.json

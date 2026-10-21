@@ -1,6 +1,6 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const { buildApp } = require("../../app");
+const { buildApp } = require("../../appFactory");
 
 async function makeTestApp() {
   const base = process.env.ATLASDB_URL || "";

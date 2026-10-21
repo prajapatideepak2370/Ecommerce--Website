@@ -1,6 +1,6 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const { buildApp } = require("./app");
+const { buildApp } = require("./appFactory");
 
 const CONNECTION_CACHE_KEY = "__tryvoxelMongooseConnection";
 let app;

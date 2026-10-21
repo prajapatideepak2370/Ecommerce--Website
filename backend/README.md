@@ -36,7 +36,7 @@ backend/
 ├── scripts/         createAdmin.js, seedAdmin.js
 ├── tests/           Jest + Supertest suites
 ├── schema.js        Joi validation schemas
-├── app.js           Express app factory (middleware + route mounting)
+├── appFactory.js    Express app factory (middleware + route mounting)
 └── server.js        Cached DB connection + local HTTP listener/serverless handler
 ```
 
@@ -77,9 +77,11 @@ npm run dev     # nodemon, http://localhost:5000
 npm start       # production
 ```
 
-`server.js` exports a serverless request handler. MongoDB is connected lazily
-and its connection promise is reused across warm invocations; local `npm start`
-continues to launch the HTTP listener.
+For Vercel, `server.js` is the backend service entrypoint and exports a
+serverless request handler. The Express app factory is named `appFactory.js`
+so Vercel does not mistake its `{ buildApp }` export for an Express app.
+MongoDB is connected lazily and its connection promise is reused across warm
+invocations; local `npm start` continues to launch the HTTP listener.
 
 Health check: `GET http://localhost:5000/api/v1/health`
 
