@@ -809,22 +809,35 @@ http://localhost:5173
 
 # 🏭 Production Build and Deployment
 
-Build the React client independently from the `frontend/` directory:
+Build the React client independently from the `frontend/` directory. Set these
+public frontend variables in the Vercel build environment (they contain API
+URLs, not credentials):
 
-```bash
-cd frontend
-npm run build
+```env
+VITE_API_BASE=https://api.example.com/api/v1
+VITE_ADMIN_API_BASE=https://api.example.com/api/admin
 ```
 
-The production bundle is written to `frontend/dist`. Deploy `frontend/dist` to
-a static frontend host and deploy the Express API separately. Set `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to the deployed API
-URLs at frontend build time. Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to
-the deployed frontend origins. Configure the static host to serve `index.html`
+The production bundle is written to `frontend/dist`. The Vercel configuration
+at the repository root installs/builds the frontend and serves it as a static
+site, including rewrites for `/tvx-console` and nested admin routes. The
+storefront's client-side routes also fall back to `index.html`. The Express
+API is deployed separately. In Vercel Project Settings, set the two
+`VITE_*_API_BASE` values above for every build environment that will be used;
+the production build rejects missing values, HTTP API URLs, and localhost
+targets.
+
+Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to the exact deployed frontend
+origin(s), and set the backend's production secrets and database URL in the
+backend host's secret manager. Set `NODE_ENV=production`; the backend listener
+then binds to `0.0.0.0` by default so external Node hosts can reach it (local
+development continues to bind to `localhost`). Assign frontend and API custom
+domains under the same site (for example, `www.example.com` and
+`api.example.com`) because admin authentication uses secure,
+`SameSite=Strict` session cookies. Express does not serve the frontend build.
+For non-Vercel static hosts, configure equivalent rewrites to serve `index.html`
 for storefront routes and `admin.html` for the configured `VITE_ADMIN_BASE`
-route. Express does not serve the frontend build. Authentication continues to
-use cookies and sessions; keep the frontend and API same-site for production
-deployments unless the cookie and CSRF policy is deliberately adapted for a
-cross-site deployment.
+and nested routes.
 
 ---
 
