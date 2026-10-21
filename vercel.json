@@ -1,20 +1,55 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm ci --prefix frontend",
-  "buildCommand": "npm run build --prefix frontend",
-  "outputDirectory": "frontend/dist",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "express"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite",
+      "rewrites": [
+        {
+          "source": "/tvx-console",
+          "destination": "/admin.html"
+        },
+        {
+          "source": "/tvx-console/:path*",
+          "destination": "/admin.html"
+        },
+        {
+          "source": "/(.*)",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  },
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
       "source": "/tvx-console",
-      "destination": "/admin.html"
+      "destination": {
+        "service": "frontend",
+        "path": "/admin.html"
+      }
     },
     {
       "source": "/tvx-console/:path*",
-      "destination": "/admin.html"
+      "destination": {
+        "service": "frontend",
+        "path": "/admin.html"
+      }
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": {
+        "service": "frontend"
+      }
     }
   ]
 }

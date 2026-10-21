@@ -809,35 +809,28 @@ http://localhost:5173
 
 # 🏭 Production Build and Deployment
 
-Build the React client independently from the `frontend/` directory. Set these
-public frontend variables in the Vercel build environment (they contain API
-URLs, not credentials):
+For a separate frontend/API deployment, set these public frontend variables
+at build time (they contain API URLs, not credentials):
 
 ```env
 VITE_API_BASE=https://api.example.com/api/v1
 VITE_ADMIN_API_BASE=https://api.example.com/api/admin
 ```
 
-The production bundle is written to `frontend/dist`. The Vercel configuration
-at the repository root installs/builds the frontend and serves it as a static
-site, including rewrites for `/tvx-console` and nested admin routes. The
-storefront's client-side routes also fall back to `index.html`. The Express
-API is deployed separately. In Vercel Project Settings, set the two
-`VITE_*_API_BASE` values above for every build environment that will be used;
-the production build rejects missing values, HTTP API URLs, and localhost
-targets.
+The production bundle is written to `frontend/dist`. The repository-root
+`vercel.json` deploys Vercel `backend` (Express) and `frontend` (Vite) services.
+It publicly routes `/api/*` to the backend and other paths to the frontend;
+`/tvx-console` and nested admin paths load `admin.html`, and storefront routes
+fall back to `index.html`. The frontend uses same-origin `/api/v1` and
+`/api/admin` paths. These browser requests use the public Vercel rewrites, so
+the static frontend does not need a service binding.
 
-Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to the exact deployed frontend
-origin(s), and set the backend's production secrets and database URL in the
-backend host's secret manager. Set `NODE_ENV=production`; the backend listener
-then binds to `0.0.0.0` by default so external Node hosts can reach it (local
-development continues to bind to `localhost`). Assign frontend and API custom
-domains under the same site (for example, `www.example.com` and
-`api.example.com`) because admin authentication uses secure,
-`SameSite=Strict` session cookies. Express does not serve the frontend build.
-For non-Vercel static hosts, configure equivalent rewrites to serve `index.html`
-for storefront routes and `admin.html` for the configured `VITE_ADMIN_BASE`
-and nested routes.
+Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to the exact deployed site origin,
+and set production secrets and `ATLASDB_URL` in Vercel's environment settings.
+Set `NODE_ENV=production`. For separate frontend/API hosts, configure the
+`VITE_*_API_BASE` values above with HTTPS URLs and keep them same-site for
+secure `SameSite=Strict` admin session cookies. Other static hosts must
+configure equivalent rewrites for the storefront and admin HTML entry points.
 
 ---
 

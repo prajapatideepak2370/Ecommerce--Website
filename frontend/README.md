@@ -71,25 +71,21 @@ is sent to the API.
 ## Build
 
 ```bash
-npm run build     # outputs to frontend/dist; requires deployed API URLs
+npm run build     # outputs to frontend/dist
 npm run preview   # preview the production build
 ```
 
-Production builds require `VITE_API_BASE` and `VITE_ADMIN_API_BASE`. Set both
-to HTTPS URLs for the deployed API (or same-origin paths when the host proxies
-those paths). A production build fails rather than embedding a missing or
-localhost API URL. Do not configure API URLs on the client that point to a
-different site from the frontend: admin authentication uses secure,
-SameSite=Strict session cookies.
+Production builds default to same-origin API paths: `/api/v1` and `/api/admin`.
+This repository's Vercel multi-service configuration routes those paths to the
+backend service, so no frontend API URL variables or service binding are needed.
+For a separate-host deployment, set `VITE_API_BASE` and `VITE_ADMIN_API_BASE`
+to HTTPS API URLs at build time; admin authentication uses secure,
+SameSite=Strict session cookies, so keep frontend and API under the same site.
 
-For Vercel, the repository-root `vercel.json` builds this frontend and rewrites
-`/tvx-console` and nested console paths to `admin.html`. Deploy the backend as
-a separate Node service and set the two `VITE_*_API_BASE` variables in the
-Vercel project's build environment. Use a custom API hostname under the same
-site as the frontend (for example, `api.example.com` with `www.example.com`)
-and allow the exact frontend origin in the backend's `CORS_ORIGIN` and
-`ADMIN_ORIGIN`. If you change `VITE_ADMIN_BASE`, update the matching rewrites
-in `vercel.json` as well.
+The repository-root `vercel.json` deploys the backend and frontend as services,
+routes `/api/*` to the backend, and sends `/tvx-console` plus nested console
+paths to `admin.html`. Storefront routes fall back to `index.html`. If you
+change `VITE_ADMIN_BASE`, update the matching rewrites in `vercel.json`.
 
 For other static hosts, configure equivalent rewrites to serve `admin.html`
 for the configured admin base path and nested paths.

@@ -7,14 +7,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
   if (mode === "production") {
-    for (const key of ["VITE_API_BASE", "VITE_ADMIN_API_BASE"]) {
-      const value = env[key]?.trim();
-      if (!value) {
-        throw new Error(
-          `Production builds require ${key} to point to the deployed API.`,
-        );
-      }
+    const apiPaths = {
+      VITE_API_BASE: "/api/v1",
+      VITE_ADMIN_API_BASE: "/api/admin",
+    };
 
+    for (const [key, defaultPath] of Object.entries(apiPaths)) {
+      const value = (env[key] || defaultPath).trim();
       let url;
       try {
         url = new URL(value, "https://production.invalid");
@@ -34,9 +33,9 @@ export default defineConfig(({ mode }) => {
 
       const isSameOriginPath =
         value.startsWith("/") && !value.startsWith("//");
-      if (process.env.VERCEL === "1" && isSameOriginPath) {
+      if (process.env.VERCEL === "1" && value !== defaultPath) {
         throw new Error(
-          `${key} must use the deployed API URL; this Vercel project serves only the frontend.`,
+          `${key} must be ${defaultPath} for this Vercel deployment.`,
         );
       }
       if (
