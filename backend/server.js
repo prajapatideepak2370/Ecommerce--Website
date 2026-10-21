@@ -2,13 +2,15 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const { buildApp } = require("./appFactory");
 
-const CONNECTION_CACHE_KEY = "__tryvoxelMongooseConnection";
 const sanitizeErrorMessage = (message) =>
   String(message || "Unknown error").replace(
     /mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi,
     "mongodb://[redacted]",
   );
 let app;
+let server;
+let connectionPromise;
+let startupPromise;
 
 async function connectDB() {
   const dbUrl = process.env.ATLASDB_URL;
@@ -20,15 +22,11 @@ async function connectDB() {
     return mongoose.connection;
   }
 
-  const connectionCache =
-    globalThis[CONNECTION_CACHE_KEY] ||
-    (globalThis[CONNECTION_CACHE_KEY] = { promise: null });
-
-  if (mongoose.connection.readyState === 2 && connectionCache.promise) {
+  if (mongoose.connection.readyState === 2 && connectionPromise) {
     console.info("[api] Reusing pending MongoDB connection", {
       readyState: mongoose.connection.readyState,
     });
-    return connectionCache.promise;
+    return connectionPromise;
   }
 
   const startedAt = Date.now();
@@ -38,16 +36,15 @@ async function connectDB() {
     serverSelectionTimeoutMs: 10000,
   });
 
-  connectionCache.promise = null;
-  const connectionPromise = mongoose.connect(dbUrl, {
+  const pendingConnection = mongoose.connect(dbUrl, {
     tls: dbUrl.startsWith("mongodb+srv://"),
     serverSelectionTimeoutMS: 10000,
     maxPoolSize: 10,
   });
-  connectionCache.promise = connectionPromise;
+  connectionPromise = pendingConnection;
 
   try {
-    await connectionPromise;
+    await pendingConnection;
     console.info("[api] MongoDB connection established", {
       elapsedMs: Date.now() - startedAt,
       readyState: mongoose.connection.readyState,
@@ -61,8 +58,8 @@ async function connectDB() {
       code: err.code,
       message: sanitizeErrorMessage(err.message),
     });
-    if (connectionCache.promise === connectionPromise) {
-      connectionCache.promise = null;
+    if (connectionPromise === pendingConnection) {
+      connectionPromise = null;
     }
     throw err;
   }
@@ -75,76 +72,101 @@ function createApp() {
 
   app = buildApp(dbClientPromise);
   app.set("dbState", "connected");
+  app.set("databaseReady", () => mongoose.connection.readyState === 1);
   console.info("[api] Express application initialized");
   return app;
 }
 
 async function startServer() {
-  await connectDB();
-  const expressApp = createApp();
+  if (server?.listening) {
+    return server;
+  }
 
-  const port = Number(process.env.PORT) || 5000;
-  const hostname =
-    process.env.HOST ||
-    (process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost");
+  if (startupPromise) {
+    return startupPromise;
+  }
 
-  expressApp.listen(port, hostname, () => {
-    console.log(`TRYVOXEL³ API running at http://${hostname}:${port}`);
-    console.log(`Health: http://${hostname}:${port}/api/v1/health`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  });
-}
+  startupPromise = (async () => {
+    await connectDB();
+    const expressApp = app || createApp();
+    const port = Number(process.env.PORT) || 5000;
+    const hostname = process.env.HOST || "0.0.0.0";
 
-async function serverlessHandler(req, res) {
-  const startedAt = Date.now();
-  const requestDetails = {
-    method: req.method,
-    path: String(req.url || "/").split("?")[0],
-    vercelRequestId: req.headers?.["x-vercel-id"],
-    dbReadyState: mongoose.connection.readyState,
-    hasAtlasDbUrl: Boolean(process.env.ATLASDB_URL),
-  };
-  let stage = "database-connection";
-  console.info("[api] Serverless request received", requestDetails);
+    server = await new Promise((resolve, reject) => {
+      const httpServer = expressApp.listen(port, hostname);
+      httpServer.once("error", reject);
+      httpServer.once("listening", () => resolve(httpServer));
+    });
+
+    console.info("[api] HTTP server listening", {
+      hostname,
+      port,
+      environment: process.env.NODE_ENV || "development",
+    });
+    return server;
+  })();
 
   try {
-    await connectDB();
-    stage = "app-initialization";
-    const expressApp = app || createApp();
-    stage = "express-dispatch";
-    console.info("[api] Dispatching request to Express", {
-      ...requestDetails,
-      elapsedMs: Date.now() - startedAt,
-      dbReadyState: mongoose.connection.readyState,
-    });
-    return expressApp(req, res);
+    return await startupPromise;
   } catch (err) {
-    console.error("[api] Serverless request failed", {
-      ...requestDetails,
-      stage,
-      elapsedMs: Date.now() - startedAt,
-      dbReadyState: mongoose.connection.readyState,
+    startupPromise = null;
+    console.error("[api] Server startup failed", {
       errorName: err.name,
       errorCode: err.code,
-      errorMessage: sanitizeErrorMessage(err.message),
+      message: sanitizeErrorMessage(err.message),
     });
-    if (!res.headersSent) {
-      return res.status(503).json({
-        success: false,
-        error: {
-          code: 503,
-          message: "Service temporarily unavailable",
-        },
-      });
-    }
+    throw err;
   }
 }
 
-module.exports = serverlessHandler;
+async function shutdownServer(signal) {
+  console.info("[api] Graceful shutdown started", { signal });
+  let shutdownError;
+
+  if (server?.listening) {
+    try {
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+    } catch (err) {
+      shutdownError = err;
+      console.error("[api] HTTP server shutdown failed", {
+        errorName: err.name,
+        errorCode: err.code,
+        message: sanitizeErrorMessage(err.message),
+      });
+    }
+  }
+
+  try {
+    await mongoose.disconnect();
+  } catch (err) {
+    shutdownError ||= err;
+    console.error("[api] MongoDB shutdown failed", {
+      errorName: err.name,
+      errorCode: err.code,
+      message: sanitizeErrorMessage(err.message),
+    });
+  }
+
+  server = null;
+  startupPromise = null;
+  if (shutdownError) throw shutdownError;
+  console.info("[api] Graceful shutdown completed", { signal });
+}
+
+module.exports = { startServer, shutdownServer };
 
 if (require.main === module) {
-  startServer().catch((err) => {
-    console.error("FATAL startServer error:", err);
+  startServer().catch(() => {
     process.exit(1);
   });
+
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.once(signal, () => {
+      shutdownServer(signal).catch(() => {
+        process.exitCode = 1;
+      });
+    });
+  }
 }

@@ -37,7 +37,7 @@ backend/
 ├── tests/           Jest + Supertest suites
 ├── schema.js        Joi validation schemas
 ├── appFactory.js    Express app factory (middleware + route mounting)
-└── server.js        Cached DB connection + local HTTP listener/serverless handler
+└── server.js        MongoDB connection + persistent HTTP server lifecycle
 ```
 
 ## Environment
@@ -77,13 +77,18 @@ npm run dev     # nodemon, http://localhost:5000
 npm start       # production
 ```
 
-For Vercel, `server.js` is the backend service entrypoint and exports a
-serverless request handler. The Express app factory is named `appFactory.js`
-so Vercel does not mistake its `{ buildApp }` export for an Express app.
-MongoDB is connected lazily and its connection promise is reused across warm
-invocations; local `npm start` continues to launch the HTTP listener.
+`npm start` connects to MongoDB before binding the Express server. The server
+listens on `HOST`/`PORT` (defaults to `0.0.0.0:5000`), reuses the active
+Mongoose connection, and gracefully closes HTTP and MongoDB connections on
+SIGINT or SIGTERM. Importing `server.js` does not start a listener.
 
-Health check: `GET http://localhost:5000/api/v1/health`
+Health checks:
+
+- `GET http://localhost:5000/healthz` reports process liveness.
+- `GET http://localhost:5000/readyz` reports database readiness and returns
+  HTTP 503 when MongoDB is unavailable.
+- `GET http://localhost:5000/api/v1/health` preserves the existing API health
+  response and includes the current database state.
 
 ## Tests
 

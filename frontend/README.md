@@ -75,17 +75,12 @@ npm run build     # outputs to frontend/dist
 npm run preview   # preview the production build
 ```
 
-Production builds default to same-origin API paths: `/api/v1` and `/api/admin`.
-This repository's Vercel multi-service configuration routes those paths to the
-backend service, so no frontend API URL variables or service binding are needed.
-For a separate-host deployment, set `VITE_API_BASE` and `VITE_ADMIN_API_BASE`
-to HTTPS API URLs at build time; admin authentication uses secure,
-SameSite=Strict session cookies, so keep frontend and API under the same site.
+Production builds default to same-origin API paths: `/api/v1` and
+`/api/admin`. The AWS Nginx configuration routes these API paths to Express,
+serves `/tvx-console` from `admin.html`, and falls back to `index.html` for
+storefront routes. See [`../deploy/aws/DEPLOYMENT.md`](../deploy/aws/DEPLOYMENT.md).
 
-The repository-root `vercel.json` deploys the backend and frontend as services,
-routes `/api/*` to the backend, and sends `/tvx-console` plus nested console
-paths to `admin.html`. Storefront routes fall back to `index.html`. If you
-change `VITE_ADMIN_BASE`, update the matching rewrites in `vercel.json`.
-
-For other static hosts, configure equivalent rewrites to serve `admin.html`
-for the configured admin base path and nested paths.
+For a separate API host, set `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to its
+HTTPS URLs at build time. Admin authentication uses secure,
+SameSite=Strict session cookies, so keep the frontend and API under the same
+site.

@@ -50,10 +50,23 @@ function buildApp(dbClientPromise) {
         path: String(req.originalUrl || req.url || "/").split("?")[0],
         statusCode: res.statusCode,
         elapsedMs: Date.now() - startedAt,
-        vercelRequestId: req.get("x-vercel-id"),
+        requestId: req.get("x-request-id"),
       });
     });
     next();
+  });
+
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ success: true, status: "ok" });
+  });
+
+  app.get("/readyz", (req, res) => {
+    const isReady = req.app.get("databaseReady")?.() === true;
+    res.status(isReady ? 200 : 503).json({
+      success: isReady,
+      status: isReady ? "ready" : "not_ready",
+      database: isReady ? "connected" : "disconnected",
+    });
   });
 
   app.use(
@@ -271,6 +284,7 @@ function buildApp(dbClientPromise) {
   app.use("/api/v1", passport.session());
 
   app.get("/api/v1/health", (req, res) => {
+    const databaseReady = req.app.get("databaseReady");
     res.status(200).json({
       success: true,
       data: {
@@ -278,7 +292,12 @@ function buildApp(dbClientPromise) {
         service: "TRYVOXEL³ API",
         version: "1.0.0",
         timestamp: new Date().toISOString(),
-        dbState: req.app.get("dbState") || "connecting",
+        dbState:
+          typeof databaseReady === "function"
+            ? databaseReady()
+              ? "connected"
+              : "disconnected"
+            : req.app.get("dbState") || "connecting",
       },
     });
   });

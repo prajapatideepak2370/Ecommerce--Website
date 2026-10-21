@@ -6,7 +6,6 @@ export default defineConfig(({ mode }) => {
   const envDir = __dirname;
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
-  const isVercelBuild = process.env.VERCEL === "1";
   const productionApiBases = {
     VITE_API_BASE: "/api/v1",
     VITE_ADMIN_API_BASE: "/api/admin",
@@ -14,9 +13,7 @@ export default defineConfig(({ mode }) => {
 
   if (mode === "production") {
     for (const [key, defaultPath] of Object.entries(productionApiBases)) {
-      const value = isVercelBuild
-        ? defaultPath
-        : (env[key] || defaultPath).trim();
+      const value = (env[key] || defaultPath).trim();
       let url;
       try {
         url = new URL(value, "https://production.invalid");
@@ -58,14 +55,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir,
-    define: isVercelBuild
-      ? Object.fromEntries(
-          Object.entries(productionApiBases).map(([key, value]) => [
-            `import.meta.env.${key}`,
-            JSON.stringify(value),
-          ]),
-        )
-      : {},
     plugins: [
       react(),
       {

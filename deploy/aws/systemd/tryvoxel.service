@@ -1,0 +1,24 @@
+[Unit]
+Description=TRYVOXEL Express API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tryvoxel
+Group=tryvoxel
+WorkingDirectory=/opt/tryvoxel/backend
+EnvironmentFile=/etc/tryvoxel/backend.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/tryvoxel/backend/server.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

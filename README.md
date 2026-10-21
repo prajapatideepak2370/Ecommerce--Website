@@ -807,30 +807,19 @@ http://localhost:5173
 
 ---
 
-# 🏭 Production Build and Deployment
+# Production build and deployment
 
-For a separate frontend/API deployment, set these public frontend variables
-at build time (they contain API URLs, not credentials):
+The frontend and backend are independent applications. The AWS deployment
+guide, Nginx SPA/API routing, and systemd service are in
+[`deploy/aws/DEPLOYMENT.md`](./deploy/aws/DEPLOYMENT.md). The Vite production
+build is written to `frontend/dist`; by default it uses same-origin API paths
+(`/api/v1` and `/api/admin`), which Nginx proxies to Express.
 
-```env
-VITE_API_BASE=https://api.example.com/api/v1
-VITE_ADMIN_API_BASE=https://api.example.com/api/admin
-```
-
-The production bundle is written to `frontend/dist`. The repository-root
-`vercel.json` deploys Vercel `backend` (Express) and `frontend` (Vite) services.
-It publicly routes `/api/*` to the backend and other paths to the frontend;
-`/tvx-console` and nested admin paths load `admin.html`, and storefront routes
-fall back to `index.html`. The frontend uses same-origin `/api/v1` and
-`/api/admin` paths. These browser requests use the public Vercel rewrites, so
-the static frontend does not need a service binding.
-
-Set backend `CORS_ORIGIN` and `ADMIN_ORIGIN` to the exact deployed site origin,
-and set production secrets and `ATLASDB_URL` in Vercel's environment settings.
-Set `NODE_ENV=production`. For separate frontend/API hosts, configure the
-`VITE_*_API_BASE` values above with HTTPS URLs and keep them same-site for
-secure `SameSite=Strict` admin session cookies. Other static hosts must
-configure equivalent rewrites for the storefront and admin HTML entry points.
+For a separate frontend and API origin, configure the public
+`VITE_API_BASE` and `VITE_ADMIN_API_BASE` variables at frontend build time.
+They must contain URLs only, never credentials. Keep the frontend and API
+under the same site for the secure admin session cookie, and configure the
+backend's `CORS_ORIGIN` and `ADMIN_ORIGIN` to the exact frontend origin.
 
 ---
 
