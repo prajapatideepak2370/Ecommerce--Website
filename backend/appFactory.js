@@ -42,6 +42,20 @@ function buildApp(dbClientPromise) {
 
   app.set("trust proxy", 1);
 
+  app.use((req, res, next) => {
+    const startedAt = Date.now();
+    res.on("finish", () => {
+      console.info("[api] Request completed", {
+        method: req.method,
+        path: String(req.originalUrl || req.url || "/").split("?")[0],
+        statusCode: res.statusCode,
+        elapsedMs: Date.now() - startedAt,
+        vercelRequestId: req.get("x-vercel-id"),
+      });
+    });
+    next();
+  });
+
   app.use(
     helmet({
       contentSecurityPolicy: {

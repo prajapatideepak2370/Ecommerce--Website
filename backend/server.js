@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 const { buildApp } = require("./appFactory");
 
 const CONNECTION_CACHE_KEY = "__tryvoxelMongooseConnection";
+const sanitizeErrorMessage = (message) =>
+  String(message || "Unknown error").replace(
+    /mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi,
+    "mongodb://[redacted]",
+  );
 let app;
 
 async function connectDB() {
@@ -20,8 +25,18 @@ async function connectDB() {
     (globalThis[CONNECTION_CACHE_KEY] = { promise: null });
 
   if (mongoose.connection.readyState === 2 && connectionCache.promise) {
+    console.info("[api] Reusing pending MongoDB connection", {
+      readyState: mongoose.connection.readyState,
+    });
     return connectionCache.promise;
   }
+
+  const startedAt = Date.now();
+  console.info("[api] Starting MongoDB connection", {
+    readyState: mongoose.connection.readyState,
+    hasAtlasDbUrl: true,
+    serverSelectionTimeoutMs: 10000,
+  });
 
   connectionCache.promise = null;
   const connectionPromise = mongoose.connect(dbUrl, {
@@ -33,13 +48,19 @@ async function connectDB() {
 
   try {
     await connectionPromise;
-    console.log(
-      "Connected to MongoDB:",
-      dbUrl.split("@")[1]?.split("/")[0] || dbUrl,
-    );
+    console.info("[api] MongoDB connection established", {
+      elapsedMs: Date.now() - startedAt,
+      readyState: mongoose.connection.readyState,
+    });
     return mongoose.connection;
   } catch (err) {
-    console.error("MongoDB connection failed:", err.message);
+    console.error("[api] MongoDB connection failed", {
+      elapsedMs: Date.now() - startedAt,
+      readyState: mongoose.connection.readyState,
+      name: err.name,
+      code: err.code,
+      message: sanitizeErrorMessage(err.message),
+    });
     if (connectionCache.promise === connectionPromise) {
       connectionCache.promise = null;
     }
@@ -54,6 +75,7 @@ function createApp() {
 
   app = buildApp(dbClientPromise);
   app.set("dbState", "connected");
+  console.info("[api] Express application initialized");
   return app;
 }
 
@@ -74,12 +96,38 @@ async function startServer() {
 }
 
 async function serverlessHandler(req, res) {
+  const startedAt = Date.now();
+  const requestDetails = {
+    method: req.method,
+    path: String(req.url || "/").split("?")[0],
+    vercelRequestId: req.headers?.["x-vercel-id"],
+    dbReadyState: mongoose.connection.readyState,
+    hasAtlasDbUrl: Boolean(process.env.ATLASDB_URL),
+  };
+  let stage = "database-connection";
+  console.info("[api] Serverless request received", requestDetails);
+
   try {
     await connectDB();
+    stage = "app-initialization";
     const expressApp = app || createApp();
+    stage = "express-dispatch";
+    console.info("[api] Dispatching request to Express", {
+      ...requestDetails,
+      elapsedMs: Date.now() - startedAt,
+      dbReadyState: mongoose.connection.readyState,
+    });
     return expressApp(req, res);
   } catch (err) {
-    console.error("Serverless request initialization failed:", err);
+    console.error("[api] Serverless request failed", {
+      ...requestDetails,
+      stage,
+      elapsedMs: Date.now() - startedAt,
+      dbReadyState: mongoose.connection.readyState,
+      errorName: err.name,
+      errorCode: err.code,
+      errorMessage: sanitizeErrorMessage(err.message),
+    });
     if (!res.headersSent) {
       return res.status(503).json({
         success: false,
