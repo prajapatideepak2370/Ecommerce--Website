@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import { addToCart } from "../store/cartSlice.js";
 import { categoryApi, productApi } from "../api/endpoints.js";
-import { filterDemoProducts } from "../data/demoProducts.js";
 
 export default function Shop() {
   const dispatch = useDispatch();
@@ -20,7 +19,6 @@ export default function Shop() {
   const [sort, setSort] = useState("newest");
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [showingDemoProducts, setShowingDemoProducts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -82,18 +80,12 @@ export default function Shop() {
           .list(params)
           .then((data) => {
             if (mounted) {
-              const items = data.items || [];
-              const useDemoProducts = items.length === 0;
-              setProducts(
-                useDemoProducts ? filterDemoProducts(params) : items,
-              );
-              setShowingDemoProducts(useDemoProducts);
+              setProducts(data.items || []);
             }
           })
           .catch((err) => {
             if (mounted) {
               setProducts([]);
-              setShowingDemoProducts(false);
               setLoadError(
                 err?.response?.data?.error?.message ||
                   err?.message ||
@@ -254,11 +246,6 @@ export default function Shop() {
                 {displayProducts.length}
               </span>{" "}
               products
-              {showingDemoProducts && (
-                <span className="ml-2 text-xs text-amber-300">
-                  Temporary preview
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-ink-400" />

@@ -71,12 +71,25 @@ is sent to the API.
 ## Build
 
 ```bash
-npm run build     # outputs to frontend/dist
+npm run build     # outputs to frontend/dist; requires deployed API URLs
 npm run preview   # preview the production build
 ```
 
-Set `VITE_API_BASE` / `VITE_ADMIN_API_BASE` to the deployed API URLs at build
-time. On Vercel, `vercel.json` serves `admin.html` for `/tvx-console` and all
-of its nested routes. If you change `VITE_ADMIN_BASE`, update the matching
-admin rewrites in `vercel.json` as well. Other static hosts must serve
-`admin.html` at that base path and for nested admin routes.
+Production builds require `VITE_API_BASE` and `VITE_ADMIN_API_BASE`. Set both
+to HTTPS URLs for the deployed API (or same-origin paths when the host proxies
+those paths). A production build fails rather than embedding a missing or
+localhost API URL. Do not configure API URLs on the client that point to a
+different site from the frontend: admin authentication uses secure,
+SameSite=Strict session cookies.
+
+For Vercel, the repository-root `vercel.json` builds this frontend and rewrites
+`/tvx-console` and nested console paths to `admin.html`. Deploy the backend as
+a separate Node service and set the two `VITE_*_API_BASE` variables in the
+Vercel project's build environment. Use a custom API hostname under the same
+site as the frontend (for example, `api.example.com` with `www.example.com`)
+and allow the exact frontend origin in the backend's `CORS_ORIGIN` and
+`ADMIN_ORIGIN`. If you change `VITE_ADMIN_BASE`, update the matching rewrites
+in `vercel.json` as well.
+
+For other static hosts, configure equivalent rewrites to serve `admin.html`
+for the configured admin base path and nested paths.

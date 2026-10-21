@@ -19,7 +19,6 @@ import toast from "react-hot-toast";
 import { addToCart } from "../store/cartSlice.js";
 import { productApi, reviewApi } from "../api/endpoints.js";
 import { getErrorMessage } from "../api/client.js";
-import { demoProducts } from "../data/demoProducts.js";
 
 const formatPrice = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN")}`;
@@ -48,14 +47,6 @@ export default function ProductDetails() {
     setActiveImage(0);
     setQty(1);
 
-    const demoProduct = demoProducts.find((item) => item.slug === slug);
-    if (demoProduct) {
-      setProduct(demoProduct);
-      return () => {
-        mounted = false;
-      };
-    }
-
     productApi
       .bySlug(slug)
       .then((data) => {
@@ -71,7 +62,7 @@ export default function ProductDetails() {
   }, [slug]);
 
   useEffect(() => {
-    if (!product?._id || String(product._id).startsWith("demo-")) {
+    if (!product?._id) {
       setReviews([]);
       setReviewsError("");
       setReviewsLoading(false);

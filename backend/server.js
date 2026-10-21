@@ -62,7 +62,9 @@ async function startServer() {
   const expressApp = createApp();
 
   const port = Number(process.env.PORT) || 5000;
-  const hostname = process.env.HOST || "localhost";
+  const hostname =
+    process.env.HOST ||
+    (process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost");
 
   expressApp.listen(port, hostname, () => {
     console.log(`TRYVOXEL³ API running at http://${hostname}:${port}`);

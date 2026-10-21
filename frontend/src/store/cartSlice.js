@@ -2,10 +2,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { cartApi } from "../api/endpoints.js";
 import { getErrorMessage } from "../api/client.js";
 import { logout } from "./authSlice.js";
-import { demoProducts } from "../data/demoProducts.js";
 
 const CART_STORAGE_KEY = "tryvoxel-demo-cart";
-const DEMO_PRODUCT_IDS = new Set(demoProducts.map((product) => product._id));
 
 const buildCartTotals = (items) => {
   const subtotal = items.reduce((sum, item) => {
@@ -44,7 +42,7 @@ const readLocalCart = () => {
 
     const items = cart.items.filter((item) => {
       const productId = String(item.product || item._id || "");
-      return !productId.startsWith("demo-") || DEMO_PRODUCT_IDS.has(productId);
+      return !productId.startsWith("demo-");
     });
     const currentCart = { ...cart, items, ...buildCartTotals(items) };
     if (
@@ -54,7 +52,11 @@ const readLocalCart = () => {
       cart.totalAmount !== currentCart.totalAmount ||
       cart.subtotal !== currentCart.subtotal
     ) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(currentCart));
+      if (items.length) {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(currentCart));
+      } else {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
     }
     return currentCart;
   } catch {
@@ -62,29 +64,9 @@ const readLocalCart = () => {
   }
 };
 
-const writeLocalCart = (payload) => {
-  try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(payload));
-  } catch {
-    // ignore storage errors for demo mode
-  }
-};
-
-const storeLocalItems = (items) => {
-  const payload = { items, ...buildCartTotals(items) };
-  writeLocalCart(payload);
-  return payload;
-};
-
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (_, { rejectWithValue }) => {
-    const localCart = readLocalCart();
-    const hasDemoItems = localCart.items.some((item) =>
-      String(item.product || item._id || "").startsWith("demo-"),
-    );
-    if (hasDemoItems) return localCart;
-
     try {
       return await cartApi.get();
     } catch (err) {
@@ -98,58 +80,7 @@ export const fetchCart = createAsyncThunk(
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async (
-    { product, quantity = 1, productMeta },
-    { rejectWithValue, dispatch, getState },
-  ) => {
-    const productId = String(product || "");
-    const addLocalItem = () => {
-      const current = getState().cart.items || [];
-      const regularPrice = Number(productMeta?.price || 0);
-      const discountPrice = Number(productMeta?.discountPrice || 0);
-      const unitPrice =
-        discountPrice > 0 && discountPrice < regularPrice
-          ? discountPrice
-          : regularPrice;
-      const itemKey = productMeta?.slug || productId;
-      const existingIndex = current.findIndex(
-        (item) =>
-          item.product === productId ||
-          item.productMeta?.slug === itemKey ||
-          item._id === productId,
-      );
-      const nextItems = [...current];
-
-      if (existingIndex >= 0) {
-        const nextQuantity =
-          Number(nextItems[existingIndex].quantity || 0) +
-          Number(quantity || 1);
-        nextItems[existingIndex] = {
-          ...nextItems[existingIndex],
-          quantity: nextQuantity,
-          unitPrice,
-          lineTotal: unitPrice * nextQuantity,
-          productMeta: {
-            ...(nextItems[existingIndex].productMeta || {}),
-            ...(productMeta || {}),
-          },
-        };
-      } else {
-        nextItems.push({
-          _id: productId,
-          product: productId,
-          quantity: Number(quantity || 1),
-          unitPrice,
-          lineTotal: unitPrice * Number(quantity || 1),
-          productMeta: productMeta || { name: "Demo product", slug: itemKey },
-        });
-      }
-
-      return storeLocalItems(nextItems);
-    };
-
-    if (DEMO_PRODUCT_IDS.has(productId)) return addLocalItem();
-
+  async ({ product, quantity = 1 }, { rejectWithValue, dispatch }) => {
     try {
       await cartApi.addItem({ product, quantity });
       return await dispatch(fetchCart()).unwrap();
@@ -161,23 +92,7 @@ export const addToCart = createAsyncThunk(
 
 export const updateQty = createAsyncThunk(
   "cart/updateQty",
-  async ({ itemId, quantity }, { rejectWithValue, dispatch, getState }) => {
-    if (DEMO_PRODUCT_IDS.has(String(itemId))) {
-      const current = getState().cart.items || [];
-      const updated = current.map((item) =>
-        item._id === itemId
-          ? {
-              ...item,
-              quantity: Math.max(1, Number(quantity || 1)),
-              lineTotal:
-                Number(item.unitPrice || item.productMeta?.price || 0) *
-                Math.max(1, Number(quantity || 1)),
-            }
-          : item,
-      );
-      return storeLocalItems(updated);
-    }
-
+  async ({ itemId, quantity }, { rejectWithValue, dispatch }) => {
     try {
       await cartApi.updateQty(itemId, quantity);
       return await dispatch(fetchCart()).unwrap();
@@ -189,12 +104,7 @@ export const updateQty = createAsyncThunk(
 
 export const removeItem = createAsyncThunk(
   "cart/removeItem",
-  async (itemId, { rejectWithValue, dispatch, getState }) => {
-    if (DEMO_PRODUCT_IDS.has(String(itemId))) {
-      const current = getState().cart.items || [];
-      return storeLocalItems(current.filter((item) => item._id !== itemId));
-    }
-
+  async (itemId, { rejectWithValue, dispatch }) => {
     try {
       await cartApi.removeItem(itemId);
       return await dispatch(fetchCart()).unwrap();

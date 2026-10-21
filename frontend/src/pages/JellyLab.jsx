@@ -16,7 +16,6 @@ import JellyScene from "../components/jelly/JellyScene.jsx";
 import { addToCart } from "../store/cartSlice.js";
 import { productApi } from "../api/endpoints.js";
 import { getErrorMessage } from "../api/client.js";
-import { demoProducts } from "../data/demoProducts.js";
 
 const formatPrice = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN")}`;
@@ -88,14 +87,6 @@ export default function JellyLab() {
   useEffect(() => {
     if (product?.slug === slug) return undefined;
     let active = true;
-    const demo = demoProducts.find((item) => item.slug === slug);
-    if (demo) {
-      setProduct(demo);
-      setLoading(false);
-      return () => {
-        active = false;
-      };
-    }
     setLoading(true);
     productApi
       .bySlug(slug)

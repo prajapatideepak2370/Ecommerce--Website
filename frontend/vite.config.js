@@ -6,6 +6,48 @@ export default defineConfig(({ mode }) => {
   const envDir = __dirname;
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
+  if (mode === "production") {
+    for (const key of ["VITE_API_BASE", "VITE_ADMIN_API_BASE"]) {
+      const value = env[key]?.trim();
+      if (!value) {
+        throw new Error(
+          `Production builds require ${key} to point to the deployed API.`,
+        );
+      }
+
+      let url;
+      try {
+        url = new URL(value, "https://production.invalid");
+      } catch {
+        throw new Error(`${key} must be a valid HTTPS URL or same-origin path.`);
+      }
+
+      const hostname = url.hostname.toLowerCase();
+      if (
+        hostname === "localhost" ||
+        hostname.endsWith(".localhost") ||
+        hostname === "127.0.0.1" ||
+        hostname === "[::1]"
+      ) {
+        throw new Error(`${key} must not point to localhost in production.`);
+      }
+
+      const isSameOriginPath =
+        value.startsWith("/") && !value.startsWith("//");
+      if (process.env.VERCEL === "1" && isSameOriginPath) {
+        throw new Error(
+          `${key} must use the deployed API URL; this Vercel project serves only the frontend.`,
+        );
+      }
+      if (
+        !isSameOriginPath &&
+        (!/^https:\/\//i.test(value) || url.protocol !== "https:")
+      ) {
+        throw new Error(`${key} must use HTTPS in production.`);
+      }
+    }
+  }
+
   const rewriteAdminEntry = (server) => {
     server.middlewares.use((req, _res, next) => {
       const url = req.url || "/";
