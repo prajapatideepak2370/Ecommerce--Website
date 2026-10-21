@@ -6,14 +6,17 @@ export default defineConfig(({ mode }) => {
   const envDir = __dirname;
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
-  if (mode === "production") {
-    const apiPaths = {
-      VITE_API_BASE: "/api/v1",
-      VITE_ADMIN_API_BASE: "/api/admin",
-    };
+  const isVercelBuild = process.env.VERCEL === "1";
+  const productionApiBases = {
+    VITE_API_BASE: "/api/v1",
+    VITE_ADMIN_API_BASE: "/api/admin",
+  };
 
-    for (const [key, defaultPath] of Object.entries(apiPaths)) {
-      const value = (env[key] || defaultPath).trim();
+  if (mode === "production") {
+    for (const [key, defaultPath] of Object.entries(productionApiBases)) {
+      const value = isVercelBuild
+        ? defaultPath
+        : (env[key] || defaultPath).trim();
       let url;
       try {
         url = new URL(value, "https://production.invalid");
@@ -33,11 +36,6 @@ export default defineConfig(({ mode }) => {
 
       const isSameOriginPath =
         value.startsWith("/") && !value.startsWith("//");
-      if (process.env.VERCEL === "1" && value !== defaultPath) {
-        throw new Error(
-          `${key} must be ${defaultPath} for this Vercel deployment.`,
-        );
-      }
       if (
         !isSameOriginPath &&
         (!/^https:\/\//i.test(value) || url.protocol !== "https:")
@@ -60,6 +58,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir,
+    define: isVercelBuild
+      ? Object.fromEntries(
+          Object.entries(productionApiBases).map(([key, value]) => [
+            `import.meta.env.${key}`,
+            JSON.stringify(value),
+          ]),
+        )
+      : {},
     plugins: [
       react(),
       {
