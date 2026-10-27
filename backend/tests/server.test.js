@@ -1,17 +1,74 @@
 const request = require("supertest");
 const express = require("express");
+const mongoose = require("mongoose");
 const { buildApp } = require("../appFactory");
 
 describe("Express server startup", () => {
   let startServer;
+  let shutdownServer;
 
   it("does not open a listener when imported", () => {
     const listen = jest.spyOn(express.application, "listen");
-    ({ startServer } = require("../server"));
+    ({ startServer, shutdownServer } = require("../server"));
 
     expect(typeof startServer).toBe("function");
     expect(listen).not.toHaveBeenCalled();
     listen.mockRestore();
+  });
+
+  it("binds the HTTP server to all interfaces", async () => {
+    const originalDbUrl = process.env.ATLASDB_URL;
+    const originalPort = process.env.PORT;
+    const originalHost = process.env.HOST;
+    const listen = jest.spyOn(express.application, "listen");
+    const listeners = {};
+    const httpServer = {
+      listening: false,
+      once: jest.fn((event, callback) => {
+        listeners[event] = callback;
+        return httpServer;
+      }),
+      close: jest.fn((callback) => callback()),
+    };
+
+    process.env.ATLASDB_URL = "mongodb://localhost/test";
+    process.env.PORT = "5000";
+    process.env.HOST = "localhost";
+    const mongoClient = {
+      db: jest.fn(() => ({
+        collection: jest.fn(() => ({
+          createIndex: jest.fn().mockResolvedValue("ok"),
+        })),
+      })),
+    };
+    jest.spyOn(mongoose, "connect").mockResolvedValue(mongoose.connection);
+    jest
+      .spyOn(mongoose.connection, "asPromise")
+      .mockResolvedValue({ getClient: jest.fn(() => mongoClient) });
+    jest.spyOn(mongoose, "disconnect").mockResolvedValue();
+    listen.mockImplementation((port, hostname) => {
+      setImmediate(() => {
+        httpServer.listening = true;
+        listeners.listening();
+      });
+      return httpServer;
+    });
+
+    let serverStarted = false;
+    try {
+      await startServer();
+      serverStarted = true;
+      expect(listen).toHaveBeenCalledWith(5000, "0.0.0.0");
+    } finally {
+      if (serverStarted) await shutdownServer("test");
+      jest.restoreAllMocks();
+      if (originalDbUrl === undefined) delete process.env.ATLASDB_URL;
+      else process.env.ATLASDB_URL = originalDbUrl;
+      if (originalPort === undefined) delete process.env.PORT;
+      else process.env.PORT = originalPort;
+      if (originalHost === undefined) delete process.env.HOST;
+      else process.env.HOST = originalHost;
+    }
   });
 
   it("fails startup clearly when the database URL is missing", async () => {

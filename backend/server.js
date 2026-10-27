@@ -90,7 +90,7 @@ async function startServer() {
     await connectDB();
     const expressApp = app || createApp();
     const port = Number(process.env.PORT) || 5000;
-    const hostname = process.env.HOST || "0.0.0.0";
+    const hostname = "0.0.0.0";
 
     server = await new Promise((resolve, reject) => {
       const httpServer = expressApp.listen(port, hostname);

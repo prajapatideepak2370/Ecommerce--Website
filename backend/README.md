@@ -44,7 +44,7 @@ backend/
 
 Copy `.env.example` to `.env` and fill in real values. Never commit `.env`.
 
-Key variables: `NODE_ENV`, `PORT`, `HOST`, `ATLASDB_URL`, `SECRET_KEY`,
+Key variables: `NODE_ENV`, `PORT`, `ATLASDB_URL`, `SECRET_KEY`,
 `CORS_ORIGIN`, `ADMIN_ORIGIN`, `GOOGLE_*`, `SMTP_*`, `CLOUD_*`,
 `RAZORPAY_*`, `ADMIN_*`. See [.env.example](./.env.example) for the full list.
 
@@ -78,7 +78,7 @@ npm start       # production
 ```
 
 `npm start` connects to MongoDB before binding the Express server. The server
-listens on `HOST`/`PORT` (defaults to `0.0.0.0:5000`), reuses the active
+listens on all network interfaces at `PORT` (default `5000`), reuses the active
 Mongoose connection, and gracefully closes HTTP and MongoDB connections on
 SIGINT or SIGTERM. Importing `server.js` does not start a listener.
 
