@@ -108,7 +108,11 @@ function buildApp(dbClientPromise) {
     process.env.CORS_ORIGIN || "http://localhost:5173"
   ).split(",");
   const adminOrigins = (process.env.ADMIN_ORIGIN || "").split(",");
-  const allowedOrigins = createOriginMatcher([...corsOrigins, ...adminOrigins]);
+  const allowedOrigins = createOriginMatcher([
+    ...corsOrigins,
+    ...adminOrigins,
+    "https://trivoxel3d-mu.vercel.app",
+  ]);
 
   app.use(
     cors({

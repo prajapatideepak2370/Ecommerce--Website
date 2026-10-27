@@ -144,4 +144,40 @@ describe("health endpoints and API routing", () => {
     expect(missingRoute.status).toBe(404);
     expect(missingRoute.body.success).toBe(false);
   });
+
+  it("allows the production storefront origin through API CORS preflight", async () => {
+    const originalCorsOrigin = process.env.CORS_ORIGIN;
+    const originalAdminOrigin = process.env.ADMIN_ORIGIN;
+    process.env.CORS_ORIGIN = "https://other-storefront.example";
+    process.env.ADMIN_ORIGIN = "";
+
+    try {
+      const collection = { createIndex: jest.fn().mockResolvedValue("ok") };
+      const client = {
+        db: jest.fn(() => ({
+          collection: jest.fn(() => collection),
+        })),
+      };
+      const preflightApp = buildApp(Promise.resolve(client));
+      const response = await request(preflightApp)
+        .options("/api/v1/users/login")
+        .set("Origin", "https://trivoxel3d-mu.vercel.app")
+        .set("Access-Control-Request-Method", "POST")
+        .set(
+          "Access-Control-Request-Headers",
+          "content-type,x-requested-with",
+        );
+
+      expect(response.status).toBe(204);
+      expect(response.headers["access-control-allow-origin"]).toBe(
+        "https://trivoxel3d-mu.vercel.app",
+      );
+      expect(response.headers["access-control-allow-credentials"]).toBe("true");
+    } finally {
+      if (originalCorsOrigin === undefined) delete process.env.CORS_ORIGIN;
+      else process.env.CORS_ORIGIN = originalCorsOrigin;
+      if (originalAdminOrigin === undefined) delete process.env.ADMIN_ORIGIN;
+      else process.env.ADMIN_ORIGIN = originalAdminOrigin;
+    }
+  });
 });
