@@ -12,13 +12,23 @@ export default defineConfig(({ mode }) => {
   };
 
   if (mode === "production") {
+    const problems = [];
+
     for (const [key, defaultPath] of Object.entries(productionApiBases)) {
-      const value = (env[key] || defaultPath).trim();
+      const raw = env[key];
+      const value = (raw || defaultPath).trim();
+      const source = raw
+        ? `${key}=${raw}`
+        : `${key} is unset, using the default "${defaultPath}"`;
+
       let url;
       try {
         url = new URL(value, "https://production.invalid");
       } catch {
-        throw new Error(`${key} must be a valid HTTPS URL or same-origin path.`);
+        problems.push(
+          `${key} must be a valid URL or same-origin path (${source}).`,
+        );
+        continue;
       }
 
       const hostname = url.hostname.toLowerCase();
@@ -28,17 +38,34 @@ export default defineConfig(({ mode }) => {
         hostname === "127.0.0.1" ||
         hostname === "[::1]"
       ) {
-        throw new Error(`${key} must not point to localhost in production.`);
+        problems.push(
+          `${key} must not point to localhost in production (${source}).`,
+        );
+        continue;
       }
 
-      const isSameOriginPath =
-        value.startsWith("/") && !value.startsWith("//");
+      const isSameOriginPath = value.startsWith("/") && !value.startsWith("//");
       if (
         !isSameOriginPath &&
         (!/^https:\/\//i.test(value) || url.protocol !== "https:")
       ) {
-        throw new Error(`${key} must use HTTPS in production.`);
+        problems.push(`${key} must use HTTPS in production (${source}).`);
       }
+    }
+
+    if (problems.length) {
+      throw new Error(
+        [
+          "Production build configuration is invalid:",
+          ...problems.map((problem) => `  - ${problem}`),
+          "",
+          "Vite reads VITE_* variables at build time and process.env wins over",
+          "any .env file, so a stale value in the hosting dashboard will override",
+          "this repository. Fix it in Vercel -> Project -> Settings -> Environment",
+          "Variables (Production scope), then redeploy. Applying a fix to the",
+          "code alone is not enough: the build must be re-run.",
+        ].join("\n"),
+      );
     }
   }
 
