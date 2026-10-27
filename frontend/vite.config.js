@@ -2,14 +2,13 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-// The single production API configuration. These are public values (they are
-// baked into the browser bundle by design, never secrets). A hosting dashboard
-// variable still wins as long as it holds a usable value; these are used only
-// when the configured value is missing or unusable for a production build.
+// The production API uses Vercel rewrites so session cookies stay same-origin.
 const PRODUCTION_API_DEFAULTS = {
-  VITE_API_BASE: "https://trivoxel-3d.onrender.com/api/v1",
-  VITE_ADMIN_API_BASE: "https://trivoxel-3d.onrender.com/api/admin",
+  VITE_API_BASE: "/api/v1",
+  VITE_ADMIN_API_BASE: "/api/admin",
 };
+
+const PRODUCTION_API_HOST = "trivoxel-3d.onrender.com";
 
 function isLoopbackHostname(hostname) {
   const host = hostname.toLowerCase();
@@ -51,11 +50,16 @@ export default defineConfig(({ mode }) => {
   if (mode === "production") {
     for (const [key, fallback] of Object.entries(PRODUCTION_API_DEFAULTS)) {
       const problem = describeProductionProblem(env[key]);
-      if (!problem) continue;
+      let isDirectRenderApi = false;
+      if (!problem && env[key]) {
+        const url = new URL(env[key], "https://production.invalid");
+        isDirectRenderApi = url.hostname.toLowerCase() === PRODUCTION_API_HOST;
+      }
+      if (!problem && !isDirectRenderApi) continue;
 
       const configured = env[key] ? `${key}=${env[key]}` : `${key} is unset`;
       console.warn(
-        `[vite] Ignoring ${configured} for this production build because it ${problem}. Using ${fallback} instead.`,
+        `[vite] Using the same-origin API path for ${configured}; Vercel proxies API requests to Render.`,
       );
       env[key] = fallback;
     }

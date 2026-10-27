@@ -1,4 +1,5 @@
 const ExpressError = require("../utils/ExpressError");
+const { isProductionEnvironment } = require("../utils/runtimeEnvironment");
 
 module.exports = (err, req, res, next) => {
   let { statusCode = 500, message = "Something went wrong" } = err;
@@ -33,7 +34,7 @@ module.exports = (err, req, res, next) => {
     message = "Invalid token. Please log in again.";
   }
 
-  if (process.env.NODE_ENV === "development") {
+  if (!isProductionEnvironment()) {
     return res.status(statusCode).json({
       success: false,
       error: {

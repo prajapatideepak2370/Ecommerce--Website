@@ -32,6 +32,8 @@ const { adminPassport, GENERIC_INVALID } = require("./utils/adminPassport");
 const requestOriginCheck = require("./middleware/csrf");
 const { assertProductionSessionSecrets } = require("./utils/config");
 const { createOriginMatcher } = require("./utils/origins");
+const { getGoogleCallbackUrl } = require("./utils/deploymentUrls");
+const { isProductionEnvironment } = require("./utils/runtimeEnvironment");
 const {
   requireAdminAuth,
   requireAdminAuthOr404ForUnknown,
@@ -209,7 +211,7 @@ function buildApp(dbClientPromise) {
     touchAfter: 24 * 3600,
   });
 
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = isProductionEnvironment();
   const customerSessionMiddleware = session({
     store: sessionStore,
     secret: process.env.SECRET_KEY || "dev-secret-change-me-please",
@@ -230,7 +232,7 @@ function buildApp(dbClientPromise) {
 
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-  const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+  const GOOGLE_CALLBACK_URL = getGoogleCallbackUrl();
   const { resolveGoogleUser } = require("./utils/googleAuth");
 
   if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {

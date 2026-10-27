@@ -1,6 +1,7 @@
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const path = require("path");
+const { isProductionEnvironment } = require("./runtimeEnvironment");
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -8,8 +9,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-const envSuffix =
-  process.env.NODE_ENV === "production" ? "tryvoxel_PROD" : "tryvoxel_DEV";
+const envSuffix = isProductionEnvironment() ? "tryvoxel_PROD" : "tryvoxel_DEV";
 
 const imageStorage = new CloudinaryStorage({
   cloudinary,

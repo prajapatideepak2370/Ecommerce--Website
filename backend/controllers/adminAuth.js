@@ -11,11 +11,12 @@ const {
   recordAdminLoginFailed,
   clearAdminLoginFailed,
 } = require("../middleware/adminAuth");
+const { isProductionEnvironment } = require("../utils/runtimeEnvironment");
 
 const ADMIN_COOKIE_NAME = "tryvoxel.admin.sid";
 
 function _isProd() {
-  return process.env.NODE_ENV === "production";
+  return isProductionEnvironment();
 }
 
 function _sanitizeAdmin(u) {

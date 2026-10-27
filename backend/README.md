@@ -122,10 +122,17 @@ errors are `{ "success": false, "error": { "code", "message" } }`.
 ## Production Notes
 
 - Set `NODE_ENV=production` (enables secure cookies and hides error stacks).
+- Render is treated as production even if `NODE_ENV` is accidentally left as
+  `development`; production session secrets are still required there.
 - Set distinct `SECRET_KEY` and `ADMIN_SESSION_SECRET` values, each at least
   32 characters long. Production startup rejects missing, placeholder, short,
   or identical session secrets.
 - Set `CORS_ORIGIN` and `ADMIN_ORIGIN` to the deployed frontend origin(s).
+- For this Vercel deployment, keep `GOOGLE_CALLBACK_URL` set to
+  `https://trivoxel3d-mu.vercel.app/api/v1/users/auth/google/callback` and
+  `FRONTEND_URL` set to `https://trivoxel3d-mu.vercel.app`. Register the
+  callback URL exactly in Google OAuth credentials. Production ignores
+  localhost callback/frontend URLs and falls back to these deployed URLs.
 - Set `ATLASDB_URL` in the deployment secret manager to the intended production
   database. Do not reuse the local development URI or run development seed data
   against production.

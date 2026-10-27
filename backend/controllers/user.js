@@ -4,6 +4,7 @@ const User = require("../models/user");
 const _ = require("lodash");
 const crypto = require("crypto");
 const emailService = require("../utils/email");
+const { isProductionEnvironment } = require("../utils/runtimeEnvironment");
 
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 const GENERIC_RESET_MESSAGE =
@@ -66,8 +67,8 @@ module.exports.logout = async (req, res, next) => {
     if (err) return next(err);
     res.clearCookie("tryvoxel.sid", {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProductionEnvironment() ? "none" : "lax",
+      secure: isProductionEnvironment(),
     });
     sendSuccess(res, { loggedOut: true });
   });

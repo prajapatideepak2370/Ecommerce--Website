@@ -1,5 +1,7 @@
+const { isProductionEnvironment } = require("./runtimeEnvironment");
+
 function assertProductionSessionSecrets(env = process.env) {
-  if (env.NODE_ENV !== "production") return;
+  if (!isProductionEnvironment(env)) return;
 
   const secret = env.SECRET_KEY || "";
   const adminSecret = env.ADMIN_SESSION_SECRET || "";

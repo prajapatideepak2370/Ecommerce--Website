@@ -4,11 +4,12 @@ const mongoose = require("mongoose");
 const User = require("../models/user");
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const { isProductionEnvironment } = require("../utils/runtimeEnvironment");
 
 const DB_URL = process.env.ATLASDB_URL;
 
 function assertSeedAllowed(env = process.env) {
-  if (env.NODE_ENV === "production") {
+  if (isProductionEnvironment(env)) {
     throw new Error("Refusing to seed development sample data in production.");
   }
 }

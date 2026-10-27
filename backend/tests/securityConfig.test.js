@@ -103,4 +103,13 @@ describe("production session secrets", () => {
       assertProductionSessionSecrets({ NODE_ENV: "test" }),
     ).not.toThrow();
   });
+
+  it("requires production secrets on Render even when NODE_ENV is development", () => {
+    expect(() =>
+      assertProductionSessionSecrets({
+        NODE_ENV: "development",
+        RENDER: "true",
+      }),
+    ).toThrow("Production requires a SECRET_KEY");
+  });
 });

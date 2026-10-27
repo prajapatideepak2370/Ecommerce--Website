@@ -75,10 +75,12 @@ npm run build     # outputs to frontend/dist
 npm run preview   # preview the production build
 ```
 
-Production builds default to same-origin API paths: `/api/v1` and
-`/api/admin`. Configure your hosting platform to route these API paths to
-Express and serve `/tvx-console` from `admin.html`, with `index.html` as the
-fallback for storefront routes.
+Production builds use same-origin API paths: `/api/v1` and `/api/admin`.
+Vercel forwards these paths to the Render API so browser session cookies stay
+first-party. Do not set `VITE_API_BASE` or `VITE_ADMIN_API_BASE` to the Render
+origin in Vercel; the build routes those known API origins through Vercel.
+The Vercel configuration also serves `/tvx-console` from `admin.html` and
+falls back to `index.html` for storefront routes.
 
 For a separate API host, set `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to its
 HTTPS URLs at build time. Admin authentication uses secure,

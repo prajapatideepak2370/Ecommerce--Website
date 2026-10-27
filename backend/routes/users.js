@@ -7,6 +7,10 @@ const catchAsync = require("../utils/catchAsync");
 const { validate } = require("../middleware/validate");
 const { authSchemas } = require("../schema");
 const ExpressError = require("../utils/ExpressError");
+const {
+  getFrontendUrl,
+  getGoogleCallbackUrl,
+} = require("../utils/deploymentUrls");
 
 const googleErrorCodes = new Set([
   "access_denied",
@@ -18,10 +22,7 @@ const googleErrorCodes = new Set([
 ]);
 
 function frontendRedirect(path, query = {}) {
-  const frontendUrl = new URL(
-    path,
-    process.env.FRONTEND_URL || "http://localhost:5173",
-  );
+  const frontendUrl = new URL(path, getFrontendUrl());
   Object.entries(query).forEach(([key, value]) =>
     frontendUrl.searchParams.set(key, value),
   );
@@ -74,7 +75,7 @@ router.get("/auth/google", (req, res, next) => {
   if (
     !process.env.GOOGLE_CLIENT_ID ||
     !process.env.GOOGLE_CLIENT_SECRET ||
-    !process.env.GOOGLE_CALLBACK_URL
+    !getGoogleCallbackUrl()
   ) {
     return res.redirect(
       frontendRedirect("/login", { google_error: "not_configured" }),
