@@ -807,13 +807,12 @@ http://localhost:5173
 
 ---
 
-# Production build and deployment
+# Production frontend build
 
-The frontend and backend are independent applications. The AWS deployment
-guide, Nginx SPA/API routing, and systemd service are in
-[`deploy/aws/DEPLOYMENT.md`](./deploy/aws/DEPLOYMENT.md). The Vite production
+The frontend and backend are independent applications. The Vite production
 build is written to `frontend/dist`; by default it uses same-origin API paths
-(`/api/v1` and `/api/admin`), which Nginx proxies to Express.
+(`/api/v1` and `/api/admin`). Configure your hosting platform to route those
+paths to the Express backend, or provide separate API origins at build time.
 
 For a separate frontend and API origin, configure the public
 `VITE_API_BASE` and `VITE_ADMIN_API_BASE` variables at frontend build time.

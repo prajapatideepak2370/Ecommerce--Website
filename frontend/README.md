@@ -76,9 +76,9 @@ npm run preview   # preview the production build
 ```
 
 Production builds default to same-origin API paths: `/api/v1` and
-`/api/admin`. The AWS Nginx configuration routes these API paths to Express,
-serves `/tvx-console` from `admin.html`, and falls back to `index.html` for
-storefront routes. See [`../deploy/aws/DEPLOYMENT.md`](../deploy/aws/DEPLOYMENT.md).
+`/api/admin`. Configure your hosting platform to route these API paths to
+Express and serve `/tvx-console` from `admin.html`, with `index.html` as the
+fallback for storefront routes.
 
 For a separate API host, set `VITE_API_BASE` and `VITE_ADMIN_API_BASE` to its
 HTTPS URLs at build time. Admin authentication uses secure,
