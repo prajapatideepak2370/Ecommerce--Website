@@ -2,70 +2,69 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+// The single production API configuration. These are public values (they are
+// baked into the browser bundle by design, never secrets). A hosting dashboard
+// variable still wins as long as it holds a usable value; these are used only
+// when the configured value is missing or unusable for a production build.
+const PRODUCTION_API_DEFAULTS = {
+  VITE_API_BASE: "https://trivoxel-3d.onrender.com/api/v1",
+  VITE_ADMIN_API_BASE: "https://trivoxel-3d.onrender.com/api/admin",
+};
+
+function isLoopbackHostname(hostname) {
+  const host = hostname.toLowerCase();
+  return (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "[::1]"
+  );
+}
+
+/** Explains why a value is unusable in production, or null when it is fine. */
+function describeProductionProblem(value) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return "is empty";
+
+  let url;
+  try {
+    url = new URL(trimmed, "https://production.invalid");
+  } catch {
+    return "is not a valid URL or same-origin path";
+  }
+
+  if (isLoopbackHostname(url.hostname)) return "points to localhost";
+
+  const isSameOriginPath = trimmed.startsWith("/") && !trimmed.startsWith("//");
+  if (!isSameOriginPath && url.protocol !== "https:")
+    return "does not use HTTPS";
+
+  return null;
+}
+
 export default defineConfig(({ mode }) => {
   const envDir = __dirname;
   const env = loadEnv(mode, envDir, "VITE_");
   const adminBase = (env.VITE_ADMIN_BASE || "/tvx-console").replace(/\/$/, "");
-  const productionApiBases = {
-    VITE_API_BASE: "/api/v1",
-    VITE_ADMIN_API_BASE: "/api/admin",
-  };
 
   if (mode === "production") {
-    const problems = [];
+    for (const [key, fallback] of Object.entries(PRODUCTION_API_DEFAULTS)) {
+      const problem = describeProductionProblem(env[key]);
+      if (!problem) continue;
 
-    for (const [key, defaultPath] of Object.entries(productionApiBases)) {
-      const raw = env[key];
-      const value = (raw || defaultPath).trim();
-      const source = raw
-        ? `${key}=${raw}`
-        : `${key} is unset, using the default "${defaultPath}"`;
-
-      let url;
-      try {
-        url = new URL(value, "https://production.invalid");
-      } catch {
-        problems.push(
-          `${key} must be a valid URL or same-origin path (${source}).`,
-        );
-        continue;
-      }
-
-      const hostname = url.hostname.toLowerCase();
-      if (
-        hostname === "localhost" ||
-        hostname.endsWith(".localhost") ||
-        hostname === "127.0.0.1" ||
-        hostname === "[::1]"
-      ) {
-        problems.push(
-          `${key} must not point to localhost in production (${source}).`,
-        );
-        continue;
-      }
-
-      const isSameOriginPath = value.startsWith("/") && !value.startsWith("//");
-      if (
-        !isSameOriginPath &&
-        (!/^https:\/\//i.test(value) || url.protocol !== "https:")
-      ) {
-        problems.push(`${key} must use HTTPS in production (${source}).`);
-      }
+      const configured = env[key] ? `${key}=${env[key]}` : `${key} is unset`;
+      console.warn(
+        `[vite] Ignoring ${configured} for this production build because it ${problem}. Using ${fallback} instead.`,
+      );
+      env[key] = fallback;
     }
 
-    if (problems.length) {
-      throw new Error(
-        [
-          "Production build configuration is invalid:",
-          ...problems.map((problem) => `  - ${problem}`),
-          "",
-          "Vite reads VITE_* variables at build time and process.env wins over",
-          "any .env file, so a stale value in the hosting dashboard will override",
-          "this repository. Fix it in Vercel -> Project -> Settings -> Environment",
-          "Variables (Production scope), then redeploy. Applying a fix to the",
-          "code alone is not enough: the build must be re-run.",
-        ].join("\n"),
-      );
+    // Vite builds `import.meta.env` from process.env, and process.env takes
+    // precedence over every .env file. Publishing the repaired values here is
+    // what makes the bundle itself pick them up, not just this config file.
+    for (const key of Object.keys(PRODUCTION_API_DEFAULTS)) {
+      process.env[key] = env[key];
     }
   }
 
