@@ -1,5 +1,9 @@
 const request = require("supertest");
+const mongoose = require("mongoose");
 const User = require("../models/user");
+const Category = require("../models/Category");
+const Product = require("../models/Product");
+const Order = require("../models/Order");
 const { makeTestApp, teardown } = require("./helpers/testApp");
 
 const ADMIN = {
@@ -171,6 +175,60 @@ describe("separate admin console authentication", () => {
       delta: 4,
     });
     expect(history.body.data.docs[0].reason).toBe("Integration test restock");
+  });
+
+  it("permanently deletes a product when unrelated orders exist", async () => {
+    const { adminAgent } = await loginAsAdmin();
+    const category = await Category.create({
+      name: "Permanent Delete Test Category",
+      slug: "permanent-delete-test-category",
+    });
+    const product = await Product.create({
+      name: "Permanent Delete Test Product",
+      slug: "permanent-delete-test-product",
+      description: "Test product for permanent deletion.",
+      price: 99,
+      category: category._id,
+      stock: 1,
+    });
+
+    await Order.create({
+      user: new mongoose.Types.ObjectId(),
+      items: [
+        {
+          product: new mongoose.Types.ObjectId(),
+          name: "Unrelated ordered product",
+          quantity: 1,
+          priceAtPurchase: 10,
+        },
+      ],
+      shippingAddress: {
+        fullName: "Test Customer",
+        phone: "1234567890",
+        line1: "1 Test Street",
+        city: "Test City",
+        state: "Test State",
+        postalCode: "123456",
+        country: "India",
+      },
+      subtotal: 10,
+      tax: 0,
+      shippingFee: 0,
+      totalAmount: 10,
+      payment: { provider: "COD", status: "Pending" },
+    });
+
+    const response = await adminAgent
+      .delete(`/api/admin/products/${product._id}?permanent=true`)
+      .set("X-Requested-With", "XMLHttpRequest")
+      .send({ reason: "Permanent delete regression test" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.data).toMatchObject({
+      deleted: "permanent",
+      id: String(product._id),
+    });
+    await expect(Product.findById(product._id)).resolves.toBeNull();
   });
 
   it("requires the AJAX header to log out the admin session", async () => {

@@ -382,7 +382,7 @@ async function _orderReferencesProduct(productId) {
   const count = await Order.estimatedDocumentCount();
   if (count === 0) return false;
   const n = await Order.countDocuments({
-    "items.product": mongoose.Types.ObjectId(productId),
+    "items.product": new mongoose.Types.ObjectId(productId),
   });
   return n > 0;
 }
