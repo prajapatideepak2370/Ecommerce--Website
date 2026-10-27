@@ -2,6 +2,11 @@ import axios from "axios";
 
 const baseURL = import.meta.env.VITE_API_BASE || "/api/v1";
 
+// The API is hosted on Render, whose free instances sleep when idle and can
+// take up to ~50s to boot on the first request. Requests are never retried
+// automatically, so a slow cold start cannot turn into duplicate writes.
+const REQUEST_TIMEOUT_MS = 60000;
+
 export const api = axios.create({
   baseURL,
   withCredentials: true,
@@ -10,7 +15,7 @@ export const api = axios.create({
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
-  timeout: 30000,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 api.interceptors.response.use(

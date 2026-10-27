@@ -31,6 +31,7 @@ const adminOrdersRouter = require("./routes/admin/adminOrders");
 const { adminPassport, GENERIC_INVALID } = require("./utils/adminPassport");
 const requestOriginCheck = require("./middleware/csrf");
 const { assertProductionSessionSecrets } = require("./utils/config");
+const { createOriginMatcher } = require("./utils/origins");
 const {
   requireAdminAuth,
   requireAdminAuthOr404ForUnknown,
@@ -103,26 +104,22 @@ function buildApp(dbClientPromise) {
     }),
   );
 
-  const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const adminOrigins = (process.env.ADMIN_ORIGIN || "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const allCorsOrigins = Array.from(new Set([...corsOrigins, ...adminOrigins]));
+  const corsOrigins = (
+    process.env.CORS_ORIGIN || "http://localhost:5173"
+  ).split(",");
+  const adminOrigins = (process.env.ADMIN_ORIGIN || "").split(",");
+  const allowedOrigins = createOriginMatcher([...corsOrigins, ...adminOrigins]);
 
   app.use(
     cors({
-      origin: allCorsOrigins,
+      origin: allowedOrigins.matcher,
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Accept", "X-Requested-With"],
     }),
   );
-  app.use("/api/v1", requestOriginCheck(allCorsOrigins));
-  app.use("/api/admin", requestOriginCheck(allCorsOrigins));
+  app.use("/api/v1", requestOriginCheck(allowedOrigins.isAllowed));
+  app.use("/api/admin", requestOriginCheck(allowedOrigins.isAllowed));
 
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -327,6 +324,17 @@ function buildApp(dbClientPromise) {
     Number(process.env.ADMIN_SESSION_MAX_AGE || 2 * 60 * 60) * 1000,
   );
 
+  // "strict" keeps the admin cookie off every cross-site request, which is the
+  // safest default. It only works when the admin console is served from the
+  // same site as this API. When the console is hosted on a different origin
+  // (e.g. Vercel), set ADMIN_COOKIE_SAMESITE=none; CSRF stays guarded by the
+  // origin allowlist plus the X-Requested-With header check.
+  const adminSameSite = ["strict", "lax", "none"].includes(
+    String(process.env.ADMIN_COOKIE_SAMESITE || "").toLowerCase(),
+  )
+    ? String(process.env.ADMIN_COOKIE_SAMESITE).toLowerCase()
+    : "strict";
+
   const adminSessionMiddleware = session({
     store: adminSessionStore,
     secret:
@@ -338,8 +346,8 @@ function buildApp(dbClientPromise) {
     name: "tryvoxel.admin.sid",
     cookie: {
       httpOnly: true,
-      sameSite: "strict",
-      secure: isProd,
+      sameSite: adminSameSite,
+      secure: isProd || adminSameSite === "none",
       maxAge: ADMIN_COOKIE_MAX_AGE,
     },
   });

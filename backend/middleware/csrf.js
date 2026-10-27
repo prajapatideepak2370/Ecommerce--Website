@@ -1,9 +1,13 @@
 const ExpressError = require("../utils/ExpressError");
+const { createOriginMatcher } = require("../utils/origins");
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 module.exports = function requestOriginCheck(allowedOrigins) {
-  const origins = new Set(allowedOrigins);
+  const isAllowed =
+    typeof allowedOrigins === "function"
+      ? allowedOrigins
+      : createOriginMatcher(allowedOrigins).isAllowed;
 
   return function checkRequestOrigin(req, _res, next) {
     if (SAFE_METHODS.has(String(req.method || "").toUpperCase())) {
@@ -12,7 +16,7 @@ module.exports = function requestOriginCheck(allowedOrigins) {
 
     const origin = req.get("Origin");
     if (origin) {
-      if (!origins.has(origin)) {
+      if (!isAllowed(origin)) {
         return next(new ExpressError(403, "Invalid request origin."));
       }
       return next();
