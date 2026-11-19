@@ -51,12 +51,12 @@ export default function Cart() {
   };
 
   return (
-    <div className="page-container py-10">
-      <h1 className="font-display text-3xl md:text-4xl font-semibold mb-8">
+    <div className="page-container py-6 sm:py-10">
+      <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold mb-5 sm:mb-8">
         Your <span className="gradient-text">Cart</span>
       </h1>
       {!items.length ? (
-        <div className="card p-14 text-center">
+        <div className="card p-8 sm:p-14 text-center">
           <ShoppingBag size={48} className="mx-auto mb-4 text-brand-300" />
           <h2 className="font-display text-xl mb-2">Your cart is empty</h2>
           <p className="text-ink-400 mb-6 text-sm max-w-md mx-auto">
@@ -67,11 +67,11 @@ export default function Cart() {
           </Link>
         </div>
       ) : (
-        <div className="grid lg:grid-cols-[1fr_380px] gap-6">
+        <div className="grid lg:grid-cols-[1fr_380px] gap-4 sm:gap-6">
           <div className="card divide-y divide-ink-800">
             {items.map((it) => (
-              <div key={it._id || it.product} className="p-5 flex gap-4">
-                <div className="h-24 w-24 rounded-xl bg-white grid place-items-center shrink-0 overflow-hidden">
+              <div key={it._id || it.product} className="p-3 sm:p-5 flex gap-3 sm:gap-4">
+                <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-xl bg-white grid place-items-center shrink-0 overflow-hidden">
                   {it.productMeta?.images?.[0]?.url ? (
                     <img
                       src={it.productMeta.images[0].url}
@@ -94,7 +94,7 @@ export default function Cart() {
                       ? "Out of stock"
                       : `In stock: ${it.productMeta?.stock ?? 0}`}
                   </div>
-                  <div className="mt-3 flex items-center gap-4">
+                  <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
                     <div className="inline-flex items-center border border-ink-700 rounded-lg overflow-hidden">
                       <button
                         onClick={() =>
@@ -135,7 +135,7 @@ export default function Cart() {
               </div>
             ))}
           </div>
-          <aside className="card p-6 self-start lg:sticky lg:top-20">
+          <aside className="card p-4 sm:p-6 self-start lg:sticky lg:top-20">
             <h3 className="font-display text-xl font-semibold mb-4">
               Order summary
             </h3>

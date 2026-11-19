@@ -13,7 +13,11 @@ jest.mock("../models/user", () => {
 });
 
 const User = require("../models/user");
-const { GoogleAuthError, resolveGoogleUser } = require("../utils/googleAuth");
+const {
+  GoogleAuthError,
+  getSafeGoogleReturnTo,
+  resolveGoogleUser,
+} = require("../utils/googleAuth");
 
 const verifiedProfile = (overrides = {}) => ({
   id: "google-user-123",
@@ -66,6 +70,7 @@ describe("resolveGoogleUser", () => {
       authProvider: "google",
       role: "customer",
     });
+
     expect(User.prototype.save).toHaveBeenCalledTimes(1);
   });
 
@@ -135,5 +140,21 @@ describe("resolveGoogleUser", () => {
     await expect(resolveGoogleUser(verifiedProfile())).rejects.toBeInstanceOf(
       GoogleAuthError,
     );
+  });
+});
+
+describe("getSafeGoogleReturnTo", () => {
+  it("preserves internal destinations and their query strings", () => {
+    expect(getSafeGoogleReturnTo("/checkout?step=shipping#address")).toBe(
+      "/checkout?step=shipping#address",
+    );
+  });
+
+  it.each([
+    "https://attacker.example",
+    "//attacker.example/path",
+    "javascript:alert(1)",
+  ])("rejects an external destination: %s", (value) => {
+    expect(getSafeGoogleReturnTo(value)).toBe("/");
   });
 });

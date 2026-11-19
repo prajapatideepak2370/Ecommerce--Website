@@ -28,8 +28,22 @@ export const productApi = {
 };
 
 export const reviewApi = {
-  list: (productId) =>
-    api.get(`/products/${productId}/reviews`).then(unwrap),
+  list: (productId, params = {}) =>
+    api.get(`/products/${productId}/reviews`, { params }).then(unwrap),
+  create: (productId, formData) =>
+    api
+      .post(`/products/${productId}/reviews`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then(unwrap),
+  update: (productId, reviewId, formData) =>
+    api
+      .put(`/products/${productId}/reviews/${reviewId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then(unwrap),
+  remove: (productId, reviewId) =>
+    api.delete(`/products/${productId}/reviews/${reviewId}`).then(unwrap),
 };
 
 export const categoryApi = {

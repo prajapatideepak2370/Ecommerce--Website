@@ -19,6 +19,9 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({ username: "", password: "" });
   const from = location.state?.from?.pathname || "/";
+  const returnTo = location.state?.from
+    ? `${location.state.from.pathname || "/"}${location.state.from.search || ""}${location.state.from.hash || ""}`
+    : "/";
 
   useEffect(() => {
     if (wasAuthenticatedOnMount.current) {
@@ -50,7 +53,11 @@ export default function Login() {
         <div className="text-center mb-6">
           <BrandLogo className="mx-auto mb-4 h-20 w-20 rounded-xl" />
           <div className="font-display text-2xl font-semibold gradient-text">Welcome back</div>
-          <p className="text-sm text-ink-400 mt-1">Log in to TRYVOXEL³</p>
+          <p className="text-sm text-ink-400 mt-1">
+            {from === "/checkout"
+              ? "Log in or create an account to continue checkout. Your cart is saved."
+              : "Log in to TRYVOXEL³"}
+          </p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
@@ -83,7 +90,7 @@ export default function Login() {
           <span>or</span>
           <span className="h-px flex-1 bg-ink-700" />
         </div>
-        <GoogleAuthButton />
+        <GoogleAuthButton returnTo={returnTo} />
         <div className="mt-6 text-center text-sm text-ink-400">
           New here?{" "}
           <Link

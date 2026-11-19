@@ -203,3 +203,29 @@
 .site-navbar-submenu .navbar-action {
   color: var(--navbar-active-color);
 }
+
+@media (max-width: 639px) {
+  .page-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .site-navbar .page-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-outline,
+  .btn-danger {
+    min-height: 2.5rem;
+  }
+
+  input,
+  textarea,
+  select {
+    min-height: 2.5rem;
+  }
+}

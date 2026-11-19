@@ -1,10 +1,22 @@
 const User = require("../models/user");
+const { getFrontendUrl } = require("./deploymentUrls");
 
 class GoogleAuthError extends Error {
   constructor(code) {
     super(code);
     this.name = "GoogleAuthError";
     this.code = code;
+  }
+}
+
+function getSafeGoogleReturnTo(value) {
+  const frontendUrl = new URL(getFrontendUrl());
+  try {
+    const target = new URL(String(value || "/"), frontendUrl);
+    if (target.origin !== frontendUrl.origin) return "/";
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return "/";
   }
 }
 
@@ -118,4 +130,8 @@ async function resolveGoogleUser(profile) {
   }
 }
 
-module.exports = { GoogleAuthError, resolveGoogleUser };
+module.exports = {
+  GoogleAuthError,
+  getSafeGoogleReturnTo,
+  resolveGoogleUser,
+};

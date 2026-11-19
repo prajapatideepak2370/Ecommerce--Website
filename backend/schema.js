@@ -312,13 +312,19 @@ module.exports.orderSchemas = {
 module.exports.reviewSchemas = {
   create: Joi.object({
     rating: Joi.number().integer().min(1).max(5).required(),
-    comment: Joi.string().allow("", null).max(2000),
+    title: Joi.string().trim().min(3).max(120).required(),
+    comment: Joi.string().trim().min(10).max(2000).required(),
   }),
 
   update: Joi.object({
     rating: Joi.number().integer().min(1).max(5),
-    comment: Joi.string().allow("", null).max(2000),
+    title: Joi.string().trim().min(3).max(120),
+    comment: Joi.string().trim().min(10).max(2000),
   }).min(1),
+
+  query: Joi.object({
+    sort: Joi.string().valid("newest", "oldest", "highest").default("newest"),
+  }),
 };
 
 module.exports.adminSchemas = {

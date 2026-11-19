@@ -28,7 +28,6 @@ import BrandLogo from "./BrandLogo.jsx";
 const navLinks = [
   { to: "/shop", label: "Shop" },
   { to: "/collections", label: "Collections" },
-  { to: "/new", label: "New Arrivals" },
   { to: "/about", label: "About" },
 ];
 
@@ -77,11 +76,11 @@ export default function Navbar() {
 
   return (
     <header className="site-navbar sticky top-0 z-50 border-b backdrop-blur-md">
-      <div className="page-container flex h-16 items-center gap-3">
-        <Link to="/" className="flex items-center gap-2 group shrink-0">
-          <BrandLogo className="h-11 w-11 rounded-lg" />
+      <div className="page-container flex h-14 md:h-16 items-center gap-1.5 sm:gap-3">
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
+          <BrandLogo className="h-9 w-9 sm:h-11 sm:w-11 rounded-lg" />
           <div className="flex flex-col leading-tight">
-            <span className="font-display text-lg font-semibold tracking-tight gradient-text">
+            <span className="font-display text-base sm:text-lg font-semibold tracking-tight gradient-text">
               TRYVOXEL³ᴰ
             </span>
             <span className="navbar-muted hidden sm:block text-[10px] uppercase tracking-[0.22em]">
@@ -113,7 +112,7 @@ export default function Navbar() {
 
         <button
           aria-label="Search"
-          className="navbar-control h-10 w-10 grid place-items-center rounded-lg"
+          className="navbar-control h-9 w-9 md:h-10 md:w-10 grid place-items-center rounded-lg"
           onClick={() => navigate("/shop")}
         >
           <Search size={18} />
@@ -123,7 +122,7 @@ export default function Navbar() {
           aria-label={`Theme: ${themeMode}`}
           title={`Theme: ${themeMode}`}
           onClick={cycleTheme}
-          className="navbar-control h-10 w-10 grid place-items-center rounded-lg"
+          className="navbar-control h-9 w-9 md:h-10 md:w-10 grid place-items-center rounded-lg"
         >
           <ThemeIcon size={18} />
         </button>
@@ -131,7 +130,7 @@ export default function Navbar() {
         <Link
           to="/cart"
           aria-label="Cart"
-          className="navbar-control relative h-10 w-10 grid place-items-center rounded-lg"
+          className="navbar-control relative h-9 w-9 md:h-10 md:w-10 grid place-items-center rounded-lg"
         >
           <ShoppingBag size={18} />
           {cartCount > 0 && (
@@ -209,7 +208,7 @@ export default function Navbar() {
         </div>
 
         <button
-          className="navbar-control md:hidden h-10 w-10 grid place-items-center rounded-lg"
+          className="navbar-control md:hidden h-9 w-9 grid place-items-center rounded-lg"
           aria-label="Menu"
           onClick={() => setOpen((v) => !v)}
         >

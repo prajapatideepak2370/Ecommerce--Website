@@ -108,7 +108,7 @@ export default function Home() {
           aria-hidden
         />
 
-        <div className="page-container pt-14 md:pt-20 pb-16 md:pb-20 grid md:grid-cols-2 gap-10 md:gap-16 items-center relative">
+        <div className="page-container pt-9 sm:pt-14 md:pt-20 pb-10 sm:pb-16 md:pb-20 grid md:grid-cols-2 gap-8 md:gap-16 items-center relative">
           <div>
             <motion.span
               initial={{ opacity: 0, y: 10 }}
@@ -124,7 +124,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="mt-6 font-display font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight"
+              className="mt-4 sm:mt-6 font-display font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight"
             >
               <span className="gradient-text">Experiment.</span>
               <br />
@@ -137,7 +137,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="mt-6 text-ink-300 max-w-lg text-base md:text-lg leading-relaxed"
+              className="mt-4 sm:mt-6 text-ink-300 max-w-lg text-sm sm:text-base md:text-lg leading-relaxed"
             >
               Discover distinctive objects and thoughtful design, with a
               closer look at what makes every piece special.
@@ -147,7 +147,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mt-8 flex flex-wrap items-center gap-3"
+              className="mt-6 sm:mt-8 flex flex-wrap items-center gap-3"
             >
               <Link to="/shop" className="btn-primary text-base px-6 py-3">
                 Shop the collection <ArrowRight size={18} />
@@ -224,7 +224,7 @@ export default function Home() {
       </section>
 
       <section className="page-container pt-8">
-        <div className="card relative overflow-hidden p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+        <div className="card relative overflow-hidden p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-5">
           <div
             className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-brand-500/10 blur-3xl"
             aria-hidden="true"
@@ -250,8 +250,8 @@ export default function Home() {
       </section>
 
       {/* FEATURED PRODUCTS */}
-      <section className="page-container py-16">
-        <div className="flex items-end justify-between mb-8">
+      <section className="page-container py-10 sm:py-16">
+        <div className="flex items-end justify-between mb-5 sm:mb-8">
           <div>
             <h2 className="font-display text-2xl md:text-3xl font-semibold">
               Featured <span className="gradient-text">Drops</span>
@@ -262,7 +262,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {featuredProducts.map((product) => {
             const image = product.images?.[0]?.url;
             const price =
@@ -273,7 +273,7 @@ export default function Home() {
             return (
               <div
                 key={product._id}
-                className="card group p-3 transition-all hover:-translate-y-1 hover:shadow-glow"
+                className="card group p-2.5 sm:p-3 transition-all hover:-translate-y-1 hover:shadow-glow"
               >
                 <Link to={`/product/${product.slug}`} className="block">
                   <div className="aspect-square rounded-xl bg-gradient-to-br from-ink-800 via-ink-900 to-ink-950 grid place-items-center overflow-hidden relative">
@@ -287,11 +287,11 @@ export default function Home() {
                       <Box size={36} className="text-brand-300" />
                     )}
                   </div>
-                  <div className="mt-3 px-1">
+                  <div className="mt-2 sm:mt-3 px-0.5 sm:px-1">
                     <div className="font-medium line-clamp-2 min-h-12">
                       {product.name}
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
+                    <div className="mt-2 sm:mt-3 flex items-center justify-between">
                       <span className="font-semibold">
                         ₹{price.toLocaleString("en-IN")}
                       </span>

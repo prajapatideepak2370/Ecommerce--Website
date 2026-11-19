@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import { register } from "../store/authSlice.js";
+import { fetchCart } from "../store/cartSlice.js";
 import { Eye, EyeOff } from "lucide-react";
 import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 import { completePendingBuyNow } from "../utils/buyNow.js";
@@ -12,6 +13,9 @@ export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
+  const returnTo = location.state?.from
+    ? `${location.state.from.pathname || "/"}${location.state.from.search || ""}${location.state.from.hash || ""}`
+    : "/";
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -31,6 +35,7 @@ export default function Register() {
     }
     try {
       await dispatch(register(form)).unwrap();
+      await dispatch(fetchCart());
       toast.success("Account created. Welcome to TRYVOXEL³!");
       const hasPendingPurchase = await completePendingBuyNow(dispatch);
       navigate(hasPendingPurchase ? "/checkout" : from, {
@@ -140,7 +145,7 @@ export default function Register() {
           <span>or</span>
           <span className="h-px flex-1 bg-ink-700" />
         </div>
-        <GoogleAuthButton />
+        <GoogleAuthButton returnTo={returnTo} />
         <div className="mt-6 text-center text-sm text-ink-400">
           Already have an account?{" "}
           <Link to="/login" className="text-brand-300 link-underline">

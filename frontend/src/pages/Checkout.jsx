@@ -373,7 +373,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="page-container py-10">
+    <div className="page-container py-6 sm:py-10">
       <h1 className="font-display text-3xl md:text-4xl font-semibold mb-8">
         <span className="gradient-text">Checkout</span>
       </h1>
@@ -381,8 +381,8 @@ export default function Checkout() {
         onSubmit={handlePayment}
         className="grid lg:grid-cols-[1fr_380px] gap-6"
       >
-        <div className="space-y-6">
-          <section className="card p-6 md:p-8">
+        <div className="space-y-4 sm:space-y-6">
+          <section className="card p-4 sm:p-6 md:p-8">
             <h2 className="font-semibold flex items-center gap-2 mb-5">
               <Truck size={17} /> Shipping address
             </h2>
@@ -441,7 +441,7 @@ export default function Checkout() {
             </div>
           </section>
 
-          <section className="card p-6 md:p-8">
+          <section className="card p-4 sm:p-6 md:p-8">
             <h2 className="font-semibold mb-4">Payment method</h2>
             <div className="border rounded-lg p-4 flex gap-3 border-brand-400 bg-brand-500/10">
               <CreditCard size={20} className="text-brand-300 mt-0.5" />
@@ -471,7 +471,7 @@ export default function Checkout() {
           </section>
         </div>
 
-        <aside className="card p-6 self-start lg:sticky lg:top-20">
+        <aside className="card p-4 sm:p-6 self-start lg:sticky lg:top-20">
           <h2 className="font-display text-xl font-semibold mb-4">
             Order summary
           </h2>

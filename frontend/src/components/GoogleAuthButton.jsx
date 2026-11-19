@@ -24,7 +24,7 @@ function GoogleMark() {
   );
 }
 
-export default function GoogleAuthButton() {
+export default function GoogleAuthButton({ returnTo = "/" }) {
   const [redirecting, setRedirecting] = useState(false);
 
   const startGoogleAuth = () => {
@@ -37,6 +37,7 @@ export default function GoogleAuthButton() {
       `${apiBase.pathname.replace(/\/$/, "")}/users/auth/google`,
       apiBase.origin,
     );
+    authUrl.searchParams.set("returnTo", returnTo);
     window.location.assign(authUrl);
   };
 

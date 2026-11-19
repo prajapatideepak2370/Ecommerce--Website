@@ -29,6 +29,15 @@ const categoryStorage = new CloudinaryStorage({
   },
 });
 
+const reviewImageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: `${envSuffix}/reviews`,
+    allowedFormats: ["png", "jpg", "jpeg", "webp"],
+    transformation: [{ quality: "auto", fetch_format: "auto" }],
+  },
+});
+
 const model3DStorage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -83,6 +92,7 @@ module.exports = {
   cloudinary,
   imageStorage,
   categoryStorage,
+  reviewImageStorage,
   model3DStorage,
   deleteFromCloudinary,
   extractPublicId,

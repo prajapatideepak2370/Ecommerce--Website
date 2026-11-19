@@ -11,6 +11,7 @@ const {
   getFrontendUrl,
   getGoogleCallbackUrl,
 } = require("../utils/deploymentUrls");
+const { getSafeGoogleReturnTo } = require("../utils/googleAuth");
 
 const googleErrorCodes = new Set([
   "access_denied",
@@ -81,12 +82,15 @@ router.get("/auth/google", (req, res, next) => {
       frontendRedirect("/login", { google_error: "not_configured" }),
     );
   }
+  req.session.googleReturnTo = getSafeGoogleReturnTo(req.query.returnTo);
   return passport.authenticate("google", {
     scope: ["profile", "email"],
   })(req, res, next);
 });
 
 router.get("/auth/google/callback", (req, res, next) => {
+  const returnTo = req.session.googleReturnTo || "/";
+  delete req.session.googleReturnTo;
   passport.authenticate("google", { session: false }, (err, user, info) => {
     if (err && err.name !== "GoogleAuthError") return next(err);
     if (!user) {
@@ -98,7 +102,12 @@ router.get("/auth/google/callback", (req, res, next) => {
     }
     req.login(user, (loginErr) => {
       if (loginErr) return next(loginErr);
-      return res.redirect(frontendRedirect("/", { google_success: "1" }));
+      req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        return res.redirect(
+          frontendRedirect(returnTo, { google_success: "1" }),
+        );
+      });
     });
   })(req, res, next);
 });

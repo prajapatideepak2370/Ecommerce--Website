@@ -5,8 +5,8 @@ import BrandLogo from "./BrandLogo.jsx";
 export default function Footer() {
   return (
     <footer className="mt-24 border-t border-ink-800/80 bg-ink-950">
-      <div className="page-container py-12 grid gap-10 md:grid-cols-4">
-        <div className="md:col-span-2">
+      <div className="page-container py-8 sm:py-12 grid grid-cols-2 gap-7 sm:gap-10 md:grid-cols-4">
+        <div className="col-span-2 md:col-span-2">
           <div className="flex items-center gap-2 mb-3">
             <BrandLogo className="h-10 w-10 rounded-lg" />
             <div>
@@ -102,7 +102,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-ink-800/80">
-        <div className="page-container py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-ink-400">
+        <div className="page-container py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-ink-400">
           <div>© {new Date().getFullYear()} TRYVOXEL³ᴰ</div>
           <div className="flex items-center gap-4">
             <span>All rights reserved</span>

@@ -17,6 +17,7 @@ export default function Shop() {
   const [minRating, setMinRating] = useState("");
   const [inStock, setInStock] = useState(false);
   const [sort, setSort] = useState("newest");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,9 +119,9 @@ export default function Shop() {
   };
 
   return (
-    <div className="page-container py-10">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl md:text-4xl font-semibold mb-2">
+    <div className="page-container py-6 sm:py-10">
+      <div className="mb-5 sm:mb-8">
+        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold mb-2">
           The <span className="gradient-text">Shop</span>
         </h1>
         <p className="text-ink-400">
@@ -128,8 +129,24 @@ export default function Shop() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <aside className="card p-5 self-start lg:sticky lg:top-20 space-y-5">
+      <button
+        type="button"
+        aria-expanded={mobileFiltersOpen}
+        aria-controls="shop-filters"
+        onClick={() => setMobileFiltersOpen((open) => !open)}
+        className="btn-ghost mb-3 w-full justify-between lg:hidden"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal size={16} /> Filters
+        </span>
+        <span>{mobileFiltersOpen ? "Hide" : "Show"}</span>
+      </button>
+
+      <div className="grid lg:grid-cols-[280px_1fr] gap-4 sm:gap-6">
+        <aside
+          id="shop-filters"
+          className={`${mobileFiltersOpen ? "block" : "hidden"} card p-4 sm:p-5 self-start lg:sticky lg:top-20 lg:block space-y-4 sm:space-y-5`}
+        >
           <div className="flex items-center justify-between">
             <h3 className="font-semibold flex items-center gap-2">
               <SlidersHorizontal size={16} /> Filters
@@ -240,7 +257,7 @@ export default function Shop() {
         </aside>
 
         <section>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
             <div className="text-sm text-ink-300">
               <span className="font-semibold text-white">
                 {displayProducts.length}
